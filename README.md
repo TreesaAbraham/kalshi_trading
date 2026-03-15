@@ -68,3 +68,25 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+In practice, consistency is about being adaptable. Don't have much time? Scale it down. Don't have much energy? Do the easy version. Find different ways to show up depending on the circumstances. Let your habits change shape to meet the demands of the day.
+
+Adaptability is the way of consistency.”
+
+James Clear
+
+Questions for next meeting:
+Am I building this with python, javascript
+Bot will be in python, monitoring in javascript
+Before we build bot we need to build react page to understand data
+What is sdk: software development kit
+Quickstart, 
+Unauthenticated at first
+Make the repo
+Make repo
+And take notes
+	
+
+    /Users/treesaabraham/Documents/kalshi_trading
+ 
