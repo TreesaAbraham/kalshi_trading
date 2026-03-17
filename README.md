@@ -90,3 +90,25 @@ And take notes
 
     /Users/treesaabraham/Documents/kalshi_trading
  
+ Questions for tmr: 
+ 1. Are we being selective of which markets we'll be looking at?
+    There are several:
+    Politics
+    Sports
+    Culture
+    Crypto
+    Climate
+    Economics
+    Mentions
+     Companies
+https://docs.kalshi.com/getting_started/quick_start_create_order
+talk to lorenzo about making the account
+
+I know that there are older markets, so what's the cut off point for year the market was made
+
+
+
+Remember: There are many markets within a series. Use pagination page to get through all of them: 
+
+ok, so just connect straight to kalshi market through api and then display it on the react page?
+make sure to check with lorenzo what front end and back end for react page should look like
