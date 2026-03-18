@@ -112,3 +112,4 @@ Remember: There are many markets within a series. Use pagination page to get thr
 
 ok, so just connect straight to kalshi market through api and then display it on the react page?
 make sure to check with lorenzo what front end and back end for react page should look like
+
