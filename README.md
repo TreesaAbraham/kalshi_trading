@@ -101,10 +101,13 @@ And take notes
     Economics
     Mentions
      Companies
+
+Looking at all of them
 https://docs.kalshi.com/getting_started/quick_start_create_order
 talk to lorenzo about making the account
 
 I know that there are older markets, so what's the cut off point for year the market was made
+cuttoff will do 03/172025
 
 
 
@@ -113,3 +116,10 @@ Remember: There are many markets within a series. Use pagination page to get thr
 ok, so just connect straight to kalshi market through api and then display it on the react page?
 make sure to check with lorenzo what front end and back end for react page should look like
 
+-not right now, work on that later
+
+Get api keys 
+make an account officially unath, quick start
+
+prediction market are whimsical
+add api keys in environemtn commit environment gitignore .env files
