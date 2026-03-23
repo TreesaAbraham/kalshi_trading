@@ -128,18 +128,19 @@ add api keys in environemtn commit environment gitignore .env files
 
 Here’s the short version, cleaned up so it matches how Kalshi actually works:
 To-do list for Kalshi API credentials
-Create a Kalshi account if you do not already have one.
-Generate your account API credentials in Kalshi’s developer/settings area.
-Download and save the private key file somewhere secure on your computer.
-Create a .env.local file in the project root.
-Store the credential values in .env.local:
-REACT_APP_KALSHI_API_KEY_ID=...
-REACT_APP_KALSHI_PRIVATE_KEY_PATH=...
-Update .gitignore so .env files never get committed.
-Create a .env.example with fake placeholder values only.
-Use public market-data endpoints first since market data does not need auth.
-Save authenticated requests for backend work later so the private key is never exposed in React.
-Tiny but important correction, because words matter and APIs are petty:
-you are not getting an API key for each market
-you are getting one set of account-level API credentials to access authenticated endpoints
-And the public market-data part is based on the Kalshi quick start you linked, which says market data can be accessed without API keys
+x Create a Kalshi account if you do not already have one.
+x Generate your account API credentials in Kalshi’s developer/settings area.
+x Download and save the private key file somewhere secure on your computer.
+x create a .env.local file in the project root.
+x Store the credential values in .env.local:
+xREACT_APP_KALSHI_API_KEY_ID=...
+xREACT_APP_KALSHI_PRIVATE_KEY_PATH=...
+x Update .gitignore so .env files never get committed.
+x Create a .env.example with fake placeholder values only.
+Use Kalshi public market-data endpoints first since market data does not need auth.
+ Build the first market-data fetch using public endpoints only.
+ Save and inspect the returned market data.
+ Filter the data for your project’s needed date range.
+ Keep all authenticated requests for backend work later so the private key is never exposed in React.
+ Only use your saved account-level API credentials when you start working with authenticated endpoints.
+
