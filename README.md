@@ -144,3 +144,8 @@ Use Kalshi public market-data endpoints first since market data does not need au
  Keep all authenticated requests for backend work later so the private key is never exposed in React.
  Only use your saved account-level API credentials when you start working with authenticated endpoints.
 
+
+
+
+when you have an api doesn't send a file gives info instead
+scripts not as scripts but as an interface
