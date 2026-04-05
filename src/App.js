@@ -68,7 +68,11 @@ function App() {
   const [cursorHistory, setCursorHistory] = useState([]);
   const [currentCursor, setCurrentCursor] = useState('');
 
-  async function loadMarkets(cursorValue = '', createdDateValue = appliedCreatedDate, statusValue = appliedStatus) {
+  async function loadMarkets(
+    cursorValue = '',
+    createdDateValue = appliedCreatedDate,
+    statusValue = appliedStatus
+  ) {
     try {
       setLoading(true);
       setError('');
