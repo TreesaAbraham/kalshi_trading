@@ -1,68 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
-const MOCK_MARKETS = [
-  {
-    ticker: 'KXPOLL-TRUMP2028',
-    title: 'Will Trump run for president in 2028?',
-    status: 'active',
-    yes_ask_dollars: '0.41',
-    no_ask_dollars: '0.61',
-    volume_fp: '15234.00',
-    close_time: '2028-11-05T00:00:00Z',
-    liquidity_dollars: '8700.00',
-  },
-  {
-    ticker: 'KXSPRT-NBAFINALS',
-    title: 'Will the Lakers win the NBA Finals?',
-    status: 'active',
-    yes_ask_dollars: '0.27',
-    no_ask_dollars: '0.74',
-    volume_fp: '9832.00',
-    close_time: '2026-06-20T00:00:00Z',
-    liquidity_dollars: '6300.00',
-  },
-  {
-    ticker: 'KXECON-RECESSION26',
-    title: 'Will the US enter a recession in 2026?',
-    status: 'active',
-    yes_ask_dollars: '0.58',
-    no_ask_dollars: '0.43',
-    volume_fp: '22011.00',
-    close_time: '2026-12-31T00:00:00Z',
-    liquidity_dollars: '12100.00',
-  },
-  {
-    ticker: 'KXCULT-OSCARBESTPIC',
-    title: 'Will Dune win Best Picture?',
-    status: 'inactive',
-    yes_ask_dollars: '0.18',
-    no_ask_dollars: '0.83',
-    volume_fp: '4100.00',
-    close_time: '2026-03-15T00:00:00Z',
-    liquidity_dollars: '1900.00',
-  },
-  {
-    ticker: 'KXTECH-AIIPO',
-    title: 'Will OpenAI go public before 2027?',
-    status: 'active',
-    yes_ask_dollars: '0.32',
-    no_ask_dollars: '0.69',
-    volume_fp: '17654.00',
-    close_time: '2026-12-31T00:00:00Z',
-    liquidity_dollars: '9400.00',
-  },
-  {
-    ticker: 'KXCRYPTO-BTC150K',
-    title: 'Will Bitcoin hit $150k in 2026?',
-    status: 'active',
-    yes_ask_dollars: '0.36',
-    no_ask_dollars: '0.65',
-    volume_fp: '28765.00',
-    close_time: '2026-12-31T00:00:00Z',
-    liquidity_dollars: '15800.00',
-  },
-];
+const API_URL =
+  'https://api.elections.kalshi.com/trade-api/v2/markets?status=open&limit=24&mve_filter=exclude';
 
 function formatMoney(value) {
   const num = Number(value);
@@ -70,46 +10,92 @@ function formatMoney(value) {
   return `$${num.toFixed(2)}`;
 }
 
-function formatWholeMoney(value) {
+function formatVolume(value) {
   const num = Number(value);
   if (Number.isNaN(num)) return 'N/A';
-  return `$${num.toLocaleString()}`;
+  return num.toLocaleString();
 }
 
-function formatDate(dateString) {
-  const date = new Date(dateString);
+function formatDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'N/A';
   return date.toLocaleString();
 }
 
 function App() {
+  const [markets, setMarkets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedTicker, setSelectedTicker] = useState(MOCK_MARKETS[0].ticker);
+  const [selectedTicker, setSelectedTicker] = useState('');
+  const [lastUpdated, setLastUpdated] = useState('');
+
+  async function loadMarkets(isManualRefresh = false) {
+    try {
+      setError('');
+
+      if (isManualRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const response = await fetch(API_URL);
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const fetchedMarkets = Array.isArray(data.markets) ? data.markets : [];
+
+      setMarkets(fetchedMarkets);
+      setLastUpdated(new Date().toLocaleString());
+
+      if (fetchedMarkets.length > 0) {
+        setSelectedTicker((currentTicker) => {
+          const stillExists = fetchedMarkets.some(
+            (market) => market.ticker === currentTicker
+          );
+          return stillExists ? currentTicker : fetchedMarkets[0].ticker;
+        });
+      } else {
+        setSelectedTicker('');
+      }
+    } catch (err) {
+      setError(err.message || 'Something went wrong while fetching markets.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadMarkets();
+  }, []);
 
   const filteredMarkets = useMemo(() => {
-    return MOCK_MARKETS.filter((market) => {
-      const matchesSearch =
-        market.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        market.ticker.toLowerCase().includes(searchTerm.toLowerCase());
+    return markets.filter((market) => {
+      const title = market.title?.toLowerCase() || '';
+      const ticker = market.ticker?.toLowerCase() || '';
+      const query = searchTerm.toLowerCase();
 
-      const matchesStatus =
-        statusFilter === 'all' ? true : market.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
+      return title.includes(query) || ticker.includes(query);
     });
-  }, [searchTerm, statusFilter]);
+  }, [markets, searchTerm]);
 
   const selectedMarket =
     filteredMarkets.find((market) => market.ticker === selectedTicker) ||
     filteredMarkets[0] ||
     null;
 
-  const activeCount = MOCK_MARKETS.filter((market) => market.status === 'active').length;
-  const highVolumeCount = MOCK_MARKETS.filter(
-    (market) => Number(market.volume_fp) >= 15000
+  const activeCount = markets.filter((market) => market.status === 'open').length;
+  const highVolumeCount = markets.filter(
+    (market) => Number(market.volume_fp) >= 1000
   ).length;
-  const aboveFiftyYesCount = MOCK_MARKETS.filter(
+  const yesAboveHalfCount = markets.filter(
     (market) => Number(market.yes_ask_dollars) >= 0.5
   ).length;
 
@@ -121,43 +107,46 @@ function App() {
             <p className="eyebrow">Kalshi Trading</p>
             <h1>Market Monitoring Dashboard</h1>
             <p className="subtext">
-              First useful interface. Built to monitor markets, not to win awards for
-              pretending to be finished.
+              This proves the React frontend can fetch public Kalshi market data
+              directly and render it in a dashboard view.
             </p>
           </div>
 
-          <div className="topbar-actions">
-            <button className="ghost-button" type="button">
-              Refresh later
-            </button>
-          </div>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => loadMarkets(true)}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
         </header>
 
         <section className="summary-grid">
           <article className="summary-card">
-            <span className="summary-label">Total markets</span>
-            <strong>{MOCK_MARKETS.length}</strong>
+            <span className="summary-label">Markets loaded</span>
+            <strong>{loading ? '...' : markets.length}</strong>
           </article>
 
           <article className="summary-card">
-            <span className="summary-label">Active markets</span>
-            <strong>{activeCount}</strong>
+            <span className="summary-label">Open markets</span>
+            <strong>{loading ? '...' : activeCount}</strong>
           </article>
 
           <article className="summary-card">
             <span className="summary-label">High volume</span>
-            <strong>{highVolumeCount}</strong>
+            <strong>{loading ? '...' : highVolumeCount}</strong>
           </article>
 
           <article className="summary-card">
             <span className="summary-label">Yes ask ≥ $0.50</span>
-            <strong>{aboveFiftyYesCount}</strong>
+            <strong>{loading ? '...' : yesAboveHalfCount}</strong>
           </article>
         </section>
 
         <section className="toolbar">
           <div className="control-group">
-            <label htmlFor="search">Search</label>
+            <label htmlFor="search">Search markets</label>
             <input
               id="search"
               type="text"
@@ -167,115 +156,118 @@ function App() {
             />
           </div>
 
-          <div className="control-group">
-            <label htmlFor="status">Status</label>
-            <select
-              id="status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+          <div className="status-box">
+            <span className="summary-label">Last updated</span>
+            <p>{lastUpdated || 'Waiting for first fetch...'}</p>
           </div>
         </section>
 
-        <main className="content-grid">
-          <section className="panel">
-            <div className="panel-header">
-              <h2>Market list</h2>
-              <p>{filteredMarkets.length} shown</p>
-            </div>
+        {loading && <div className="message-box">Loading markets...</div>}
 
-            <div className="market-list">
-              {filteredMarkets.map((market) => (
-                <button
-                  key={market.ticker}
-                  type="button"
-                  className={
-                    selectedMarket?.ticker === market.ticker
-                      ? 'market-row selected'
-                      : 'market-row'
-                  }
-                  onClick={() => setSelectedTicker(market.ticker)}
-                >
-                  <div className="market-row-main">
-                    <p className="ticker">{market.ticker}</p>
-                    <h3>{market.title}</h3>
-                  </div>
+        {error && !loading && (
+          <div className="error-box">
+            <strong>Fetch failed.</strong>
+            <p>{error}</p>
+          </div>
+        )}
 
-                  <div className="market-row-meta">
-                    <span>{market.status}</span>
-                    <span>Yes: {formatMoney(market.yes_ask_dollars)}</span>
-                    <span>Vol: {formatWholeMoney(market.volume_fp)}</span>
-                  </div>
-                </button>
-              ))}
-
-              {filteredMarkets.length === 0 && (
-                <div className="empty-state">
-                  No markets match this filter.
-                </div>
-              )}
-            </div>
-          </section>
-
-          <aside className="panel detail-panel">
-            <div className="panel-header">
-              <h2>Selected market</h2>
-              <p>Detail view</p>
-            </div>
-
-            {selectedMarket ? (
-              <div className="detail-stack">
-                <div className="detail-block">
-                  <span className="detail-label">Ticker</span>
-                  <p>{selectedMarket.ticker}</p>
-                </div>
-
-                <div className="detail-block">
-                  <span className="detail-label">Title</span>
-                  <p>{selectedMarket.title}</p>
-                </div>
-
-                <div className="detail-grid">
-                  <div className="detail-block">
-                    <span className="detail-label">Status</span>
-                    <p>{selectedMarket.status}</p>
-                  </div>
-
-                  <div className="detail-block">
-                    <span className="detail-label">Close time</span>
-                    <p>{formatDate(selectedMarket.close_time)}</p>
-                  </div>
-
-                  <div className="detail-block">
-                    <span className="detail-label">Yes ask</span>
-                    <p>{formatMoney(selectedMarket.yes_ask_dollars)}</p>
-                  </div>
-
-                  <div className="detail-block">
-                    <span className="detail-label">No ask</span>
-                    <p>{formatMoney(selectedMarket.no_ask_dollars)}</p>
-                  </div>
-
-                  <div className="detail-block">
-                    <span className="detail-label">Volume</span>
-                    <p>{formatWholeMoney(selectedMarket.volume_fp)}</p>
-                  </div>
-
-                  <div className="detail-block">
-                    <span className="detail-label">Liquidity</span>
-                    <p>{formatWholeMoney(selectedMarket.liquidity_dollars)}</p>
-                  </div>
-                </div>
+        {!loading && !error && (
+          <main className="content-grid">
+            <section className="panel">
+              <div className="panel-header">
+                <h2>Market list</h2>
+                <p>{filteredMarkets.length} shown</p>
               </div>
-            ) : (
-              <div className="empty-state">Select a market to inspect it.</div>
-            )}
-          </aside>
-        </main>
+
+              <div className="market-list">
+                {filteredMarkets.map((market) => (
+                  <button
+                    key={market.ticker}
+                    type="button"
+                    className={
+                      selectedMarket?.ticker === market.ticker
+                        ? 'market-row selected'
+                        : 'market-row'
+                    }
+                    onClick={() => setSelectedTicker(market.ticker)}
+                  >
+                    <div className="market-row-main">
+                      <p className="ticker">{market.ticker}</p>
+                      <h3>{market.title}</h3>
+                    </div>
+
+                    <div className="market-row-meta">
+                      <span>Status: {market.status || 'N/A'}</span>
+                      <span>Yes ask: {formatMoney(market.yes_ask_dollars)}</span>
+                      <span>Volume: {formatVolume(market.volume_fp)}</span>
+                    </div>
+                  </button>
+                ))}
+
+                {filteredMarkets.length === 0 && (
+                  <div className="empty-state">
+                    No markets match your search.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <aside className="panel detail-panel">
+              <div className="panel-header">
+                <h2>Selected market</h2>
+                <p>Detail view</p>
+              </div>
+
+              {selectedMarket ? (
+                <div className="detail-stack">
+                  <div className="detail-block">
+                    <span className="detail-label">Ticker</span>
+                    <p>{selectedMarket.ticker}</p>
+                  </div>
+
+                  <div className="detail-block">
+                    <span className="detail-label">Title</span>
+                    <p>{selectedMarket.title}</p>
+                  </div>
+
+                  <div className="detail-grid">
+                    <div className="detail-block">
+                      <span className="detail-label">Status</span>
+                      <p>{selectedMarket.status || 'N/A'}</p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">Close time</span>
+                      <p>{formatDate(selectedMarket.close_time)}</p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">Yes ask</span>
+                      <p>{formatMoney(selectedMarket.yes_ask_dollars)}</p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">No ask</span>
+                      <p>{formatMoney(selectedMarket.no_ask_dollars)}</p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">Last price</span>
+                      <p>{formatMoney(selectedMarket.last_price_dollars)}</p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">Volume</span>
+                      <p>{formatVolume(selectedMarket.volume_fp)}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-state">No market selected.</div>
+              )}
+            </aside>
+          </main>
+        )}
       </div>
     </div>
   );

@@ -21,7 +21,10 @@
 .toolbar,
 .panel,
 .market-row,
-.empty-state {
+.empty-state,
+.message-box,
+.error-box,
+.status-box {
   border: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(15, 23, 42, 0.78);
   border-radius: 20px;
@@ -69,6 +72,11 @@
   cursor: pointer;
 }
 
+.ghost-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -105,8 +113,7 @@
   color: #cbd5e1;
 }
 
-.control-group input,
-.control-group select {
+.control-group input {
   width: 100%;
   border: 1px solid rgba(148, 163, 184, 0.24);
   background: rgba(30, 41, 59, 0.8);
@@ -114,6 +121,30 @@
   border-radius: 12px;
   padding: 12px 14px;
   font: inherit;
+}
+
+.status-box {
+  padding: 14px 16px;
+}
+
+.status-box p {
+  margin: 8px 0 0;
+  color: #e5e7eb;
+}
+
+.message-box,
+.error-box {
+  padding: 18px;
+  margin-bottom: 20px;
+}
+
+.error-box {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.28);
+}
+
+.error-box p {
+  margin: 8px 0 0;
 }
 
 .content-grid {
@@ -176,10 +207,6 @@
   gap: 10px;
   color: #cbd5e1;
   font-size: 0.92rem;
-}
-
-.detail-panel {
-  min-height: 100%;
 }
 
 .detail-stack {
