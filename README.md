@@ -144,7 +144,6 @@ Product for me, it's a montinoring system
 1. Make the frontend stop being a starter app
 2. Build the first useful interface, not the perfect one
 3. Prove direct frontend fetching works
-4. Keep authentication out of the frontend
-5. Delay the bot/backend ideas
+
 
 remomber to tell lorenzo about dream where he messaged you to scedule a meeting for him. and he was sounding really threatening. and it scared me so much I actually worked. 

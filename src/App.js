@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
-const API_URL =
-  'https://api.elections.kalshi.com/trade-api/v2/markets?status=open&limit=24&mve_filter=exclude';
+const BASE_URL = 'https://api.elections.kalshi.com/trade-api/v2/markets';
 
 function formatMoney(value) {
   const num = Number(value);
@@ -10,7 +9,7 @@ function formatMoney(value) {
   return `$${num.toFixed(2)}`;
 }
 
-function formatVolume(value) {
+function formatNumber(value) {
   const num = Number(value);
   if (Number.isNaN(num)) return 'N/A';
   return num.toLocaleString();
@@ -23,81 +22,160 @@ function formatDate(value) {
   return date.toLocaleString();
 }
 
+function getUtcDayRange(dateString) {
+  if (!dateString) return null;
+
+  const start = new Date(`${dateString}T00:00:00Z`);
+  const end = new Date(`${dateString}T23:59:59Z`);
+
+  return {
+    minTs: Math.floor(start.getTime() / 1000),
+    maxTs: Math.floor(end.getTime() / 1000),
+  };
+}
+
+function normalizeStatus(status) {
+  return (status || '').toLowerCase();
+}
+
+function matchesStatus(marketStatus, selectedStatus) {
+  if (selectedStatus === 'all') return true;
+
+  const normalized = normalizeStatus(marketStatus);
+
+  if (selectedStatus === 'open') {
+    return normalized === 'open' || normalized === 'active';
+  }
+
+  return normalized === selectedStatus;
+}
+
 function App() {
   const [markets, setMarkets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedTicker, setSelectedTicker] = useState('');
-  const [lastUpdated, setLastUpdated] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  async function loadMarkets(isManualRefresh = false) {
+  const [draftCreatedDate, setDraftCreatedDate] = useState('');
+  const [draftStatus, setDraftStatus] = useState('all');
+
+  const [appliedCreatedDate, setAppliedCreatedDate] = useState('');
+  const [appliedStatus, setAppliedStatus] = useState('all');
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [lastUpdated, setLastUpdated] = useState('');
+  const [nextCursor, setNextCursor] = useState('');
+  const [cursorHistory, setCursorHistory] = useState([]);
+  const [currentCursor, setCurrentCursor] = useState('');
+
+  async function loadMarkets(cursorValue = '', createdDateValue = appliedCreatedDate, statusValue = appliedStatus) {
     try {
+      setLoading(true);
       setError('');
 
-      if (isManualRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
+      const params = new URLSearchParams();
+      params.set('limit', '200');
+      params.set('mve_filter', 'exclude');
+
+      const dayRange = getUtcDayRange(createdDateValue);
+
+      if (dayRange) {
+        params.set('min_created_ts', String(dayRange.minTs));
+        params.set('max_created_ts', String(dayRange.maxTs));
+      } else if (statusValue !== 'all') {
+        params.set('status', statusValue);
       }
 
-      const response = await fetch(API_URL);
+      if (cursorValue) {
+        params.set('cursor', cursorValue);
+      }
+
+      const response = await fetch(`${BASE_URL}?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
       }
 
       const data = await response.json();
-      const fetchedMarkets = Array.isArray(data.markets) ? data.markets : [];
+      const marketList = Array.isArray(data.markets) ? data.markets : [];
 
-      setMarkets(fetchedMarkets);
+      setMarkets(marketList);
+      setNextCursor(data.cursor || '');
       setLastUpdated(new Date().toLocaleString());
 
-      if (fetchedMarkets.length > 0) {
-        setSelectedTicker((currentTicker) => {
-          const stillExists = fetchedMarkets.some(
-            (market) => market.ticker === currentTicker
-          );
-          return stillExists ? currentTicker : fetchedMarkets[0].ticker;
-        });
-      } else {
-        setSelectedTicker('');
-      }
+      setSelectedTicker((prevTicker) => {
+        const stillExists = marketList.some((market) => market.ticker === prevTicker);
+        return stillExists ? prevTicker : marketList[0]?.ticker || '';
+      });
     } catch (err) {
-      setError(err.message || 'Something went wrong while fetching markets.');
+      setError(err.message || 'Something went wrong while loading markets.');
+      setMarkets([]);
+      setNextCursor('');
+      setSelectedTicker('');
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }
 
   useEffect(() => {
-    loadMarkets();
+    loadMarkets('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredMarkets = useMemo(() => {
     return markets.filter((market) => {
-      const title = market.title?.toLowerCase() || '';
-      const ticker = market.ticker?.toLowerCase() || '';
-      const query = searchTerm.toLowerCase();
+      const matchesText =
+        (market.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (market.ticker || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-      return title.includes(query) || ticker.includes(query);
+      const matchesChosenStatus = matchesStatus(market.status, appliedStatus);
+
+      return matchesText && matchesChosenStatus;
     });
-  }, [markets, searchTerm]);
+  }, [markets, searchTerm, appliedStatus]);
 
   const selectedMarket =
     filteredMarkets.find((market) => market.ticker === selectedTicker) ||
     filteredMarkets[0] ||
     null;
 
-  const activeCount = markets.filter((market) => market.status === 'open').length;
-  const highVolumeCount = markets.filter(
-    (market) => Number(market.volume_fp) >= 1000
-  ).length;
-  const yesAboveHalfCount = markets.filter(
-    (market) => Number(market.yes_ask_dollars) >= 0.5
-  ).length;
+  function applyFilters() {
+    setAppliedCreatedDate(draftCreatedDate);
+    setAppliedStatus(draftStatus);
+    setCursorHistory([]);
+    setCurrentCursor('');
+    loadMarkets('', draftCreatedDate, draftStatus);
+  }
+
+  function clearFilters() {
+    setDraftCreatedDate('');
+    setDraftStatus('all');
+    setAppliedCreatedDate('');
+    setAppliedStatus('all');
+    setSearchTerm('');
+    setCursorHistory([]);
+    setCurrentCursor('');
+    loadMarkets('', '', 'all');
+  }
+
+  function goToNextPage() {
+    if (!nextCursor) return;
+
+    setCursorHistory((prev) => [...prev, currentCursor]);
+    setCurrentCursor(nextCursor);
+    loadMarkets(nextCursor);
+  }
+
+  function goToPreviousPage() {
+    if (cursorHistory.length === 0) return;
+
+    const previousCursor = cursorHistory[cursorHistory.length - 1];
+    const newHistory = cursorHistory.slice(0, -1);
+
+    setCursorHistory(newHistory);
+    setCurrentCursor(previousCursor);
+    loadMarkets(previousCursor);
+  }
 
   return (
     <div className="dashboard-page">
@@ -107,46 +185,15 @@ function App() {
             <p className="eyebrow">Kalshi Trading</p>
             <h1>Market Monitoring Dashboard</h1>
             <p className="subtext">
-              This proves the React frontend can fetch public Kalshi market data
-              directly and render it in a dashboard view.
+              Filter by created date, search loaded results, and inspect market status without
+              trying to dump every Kalshi market into your browser.
             </p>
           </div>
-
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => loadMarkets(true)}
-            disabled={refreshing}
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
         </header>
-
-        <section className="summary-grid">
-          <article className="summary-card">
-            <span className="summary-label">Markets loaded</span>
-            <strong>{loading ? '...' : markets.length}</strong>
-          </article>
-
-          <article className="summary-card">
-            <span className="summary-label">Open markets</span>
-            <strong>{loading ? '...' : activeCount}</strong>
-          </article>
-
-          <article className="summary-card">
-            <span className="summary-label">High volume</span>
-            <strong>{loading ? '...' : highVolumeCount}</strong>
-          </article>
-
-          <article className="summary-card">
-            <span className="summary-label">Yes ask ≥ $0.50</span>
-            <strong>{loading ? '...' : yesAboveHalfCount}</strong>
-          </article>
-        </section>
 
         <section className="toolbar">
           <div className="control-group">
-            <label htmlFor="search">Search markets</label>
+            <label htmlFor="search">Search loaded results</label>
             <input
               id="search"
               type="text"
@@ -156,10 +203,82 @@ function App() {
             />
           </div>
 
-          <div className="status-box">
-            <span className="summary-label">Last updated</span>
-            <p>{lastUpdated || 'Waiting for first fetch...'}</p>
+          <div className="control-group">
+            <label htmlFor="createdDate">Created on (UTC date)</label>
+            <input
+              id="createdDate"
+              type="date"
+              value={draftCreatedDate}
+              onChange={(e) => setDraftCreatedDate(e.target.value)}
+            />
           </div>
+
+          <div className="control-group">
+            <label htmlFor="status">Status</label>
+            <select
+              id="status"
+              value={draftStatus}
+              onChange={(e) => setDraftStatus(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="open">Open / Active</option>
+              <option value="closed">Closed</option>
+              <option value="settled">Settled</option>
+              <option value="paused">Paused</option>
+              <option value="unopened">Unopened</option>
+            </select>
+          </div>
+
+          <div className="button-row">
+            <button type="button" className="primary-button" onClick={applyFilters}>
+              Apply filters
+            </button>
+            <button type="button" className="ghost-button" onClick={clearFilters}>
+              Clear
+            </button>
+          </div>
+        </section>
+
+        <section className="summary-grid">
+          <article className="summary-card">
+            <span className="summary-label">Loaded this page</span>
+            <strong>{loading ? '...' : markets.length}</strong>
+          </article>
+
+          <article className="summary-card">
+            <span className="summary-label">Shown after filters</span>
+            <strong>{loading ? '...' : filteredMarkets.length}</strong>
+          </article>
+
+          <article className="summary-card">
+            <span className="summary-label">Created date</span>
+            <strong>{appliedCreatedDate || 'Any'}</strong>
+          </article>
+
+          <article className="summary-card">
+            <span className="summary-label">Last updated</span>
+            <strong className="small-strong">{lastUpdated || 'Waiting...'}</strong>
+          </article>
+        </section>
+
+        <section className="paging-bar">
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={goToPreviousPage}
+            disabled={loading || cursorHistory.length === 0}
+          >
+            Previous page
+          </button>
+
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={goToNextPage}
+            disabled={loading || !nextCursor}
+          >
+            Next page
+          </button>
         </section>
 
         {loading && <div className="message-box">Loading markets...</div>}
@@ -198,16 +317,15 @@ function App() {
 
                     <div className="market-row-meta">
                       <span>Status: {market.status || 'N/A'}</span>
+                      <span>Created: {formatDate(market.created_time)}</span>
                       <span>Yes ask: {formatMoney(market.yes_ask_dollars)}</span>
-                      <span>Volume: {formatVolume(market.volume_fp)}</span>
+                      <span>Volume: {formatNumber(market.volume_fp)}</span>
                     </div>
                   </button>
                 ))}
 
                 {filteredMarkets.length === 0 && (
-                  <div className="empty-state">
-                    No markets match your search.
-                  </div>
+                  <div className="empty-state">No markets match the current filters.</div>
                 )}
               </div>
             </section>
@@ -237,8 +355,18 @@ function App() {
                     </div>
 
                     <div className="detail-block">
+                      <span className="detail-label">Created time</span>
+                      <p>{formatDate(selectedMarket.created_time)}</p>
+                    </div>
+
+                    <div className="detail-block">
                       <span className="detail-label">Close time</span>
                       <p>{formatDate(selectedMarket.close_time)}</p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">Last price</span>
+                      <p>{formatMoney(selectedMarket.last_price_dollars)}</p>
                     </div>
 
                     <div className="detail-block">
@@ -252,13 +380,13 @@ function App() {
                     </div>
 
                     <div className="detail-block">
-                      <span className="detail-label">Last price</span>
-                      <p>{formatMoney(selectedMarket.last_price_dollars)}</p>
+                      <span className="detail-label">Volume</span>
+                      <p>{formatNumber(selectedMarket.volume_fp)}</p>
                     </div>
 
                     <div className="detail-block">
-                      <span className="detail-label">Volume</span>
-                      <p>{formatVolume(selectedMarket.volume_fp)}</p>
+                      <span className="detail-label">Liquidity</span>
+                      <p>{formatMoney(selectedMarket.liquidity_dollars)}</p>
                     </div>
                   </div>
                 </div>
