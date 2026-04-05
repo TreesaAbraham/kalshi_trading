@@ -8,19 +8,12 @@ body {
   background: #0f172a;
 }
 
+button,
+input,
+select {
+  font: inherit;
+}
+
 button {
   cursor: pointer;
-}
-
-img {
-  max-width: 100%;
-  display: block;
-}
-
-a {
-  color: inherit;
-}
-
-code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }

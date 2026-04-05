@@ -142,8 +142,8 @@ Product for me, it's a montinoring system
 
 
 1. Make the frontend stop being a starter app
-2. Prove direct frontend fetching works
-3. Build the first useful interface, not the perfect one
+2. Build the first useful interface, not the perfect one
+3. Prove direct frontend fetching works
 4. Keep authentication out of the frontend
 5. Delay the bot/backend ideas
 
