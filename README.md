@@ -149,3 +149,14 @@ Use Kalshi public market-data endpoints first since market data does not need au
 
 when you have an api doesn't send a file gives info instead
 scripts not as scripts but as an interface
+
+
+
+
+build front end of react app, so that it's a dashboard where I can look at it like a dashboard
+Product for me, it's a montinoring system
+
+
+
+
+
