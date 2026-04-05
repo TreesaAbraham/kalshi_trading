@@ -126,24 +126,6 @@ add api keys in environemtn commit environment gitignore .env files
 
 
 
-Here’s the short version, cleaned up so it matches how Kalshi actually works:
-To-do list for Kalshi API credentials
-x Create a Kalshi account if you do not already have one.
-x Generate your account API credentials in Kalshi’s developer/settings area.
-x Download and save the private key file somewhere secure on your computer.
-x create a .env.local file in the project root.
-x Store the credential values in .env.local:
-xREACT_APP_KALSHI_API_KEY_ID=...
-xREACT_APP_KALSHI_PRIVATE_KEY_PATH=...
-x Update .gitignore so .env files never get committed.
-x Create a .env.example with fake placeholder values only.
-Use Kalshi public market-data endpoints first since market data does not need auth.
- Build the first market-data fetch using public endpoints only.
- Save and inspect the returned market data.
- Filter the data for your project’s needed date range.
- Keep all authenticated requests for backend work later so the private key is never exposed in React.
- Only use your saved account-level API credentials when you start working with authenticated endpoints.
-
 
 
 
@@ -159,4 +141,10 @@ Product for me, it's a montinoring system
 
 
 
+1. Make the frontend stop being a starter app
+2. Prove direct frontend fetching works
+3. Build the first useful interface, not the perfect one
+4. Keep authentication out of the frontend
+5. Delay the bot/backend ideas
 
+remomber to tell lorenzo about dream where he messaged you to scedule a meeting for him. and he was sounding really threatening. and it scared me so much I actually worked. 
