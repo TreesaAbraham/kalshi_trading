@@ -147,3 +147,18 @@ Product for me, it's a montinoring system
 
 
 remomber to tell lorenzo about dream where he messaged you to scedule a meeting for him. and he was sounding really threatening. and it scared me so much I actually worked. 
+
+What this gives you now
+You’ll be able to:
+type a date like 06/28/2025
+click Apply filters
+fetch markets created that day
+narrow those loaded results by status
+search by title/ticker
+page through more results if Kalshi returns a cursor
+That is the safe version of “let the user filter what they want to see” without building the massive all-market loader.
+One limitation you should know
+If a market is old enough to have moved behind Kalshi’s historical cutoff, it will not appear on normal GET /markets; those require GET /historical/markets instead. So this UI is correct, but very old settled markets may still need a second historical-data path later.
+About the Kalshi website links
+I’m deliberately not hardcoding a market-page URL pattern yet. That’s the part most likely to break, and you already said you don’t want reckless changes. The site routes I can see publicly are slug-based and not cleanly documented.
+Paste one real Kalshi market URL from your browser next, and I’ll turn that into the exact getKalshiMarketUrl(market) helper so every card links out correctly.
