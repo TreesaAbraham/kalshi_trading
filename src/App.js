@@ -34,6 +34,26 @@ function getUtcDayRange(dateString) {
   };
 }
 
+function getUtcMonthRange(monthString) {
+  if (!monthString) return null;
+
+  const [yearStr, monthStr] = monthString.split('-');
+  const year = Number(yearStr);
+  const monthIndex = Number(monthStr) - 1;
+
+  if (Number.isNaN(year) || Number.isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+    return null;
+  }
+
+  const start = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0));
+  const end = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59));
+
+  return {
+    minTs: Math.floor(start.getTime() / 1000),
+    maxTs: Math.floor(end.getTime() / 1000),
+  };
+}
+
 function normalizeStatus(status) {
   return (status || '').toLowerCase();
 }
@@ -50,15 +70,25 @@ function matchesStatus(marketStatus, selectedStatus) {
   return normalized === selectedStatus;
 }
 
+function getAppliedDateLabel(mode, dayValue, monthValue) {
+  if (mode === 'day' && dayValue) return dayValue;
+  if (mode === 'month' && monthValue) return monthValue;
+  return 'Any';
+}
+
 function App() {
   const [markets, setMarkets] = useState([]);
   const [selectedTicker, setSelectedTicker] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [draftDateMode, setDraftDateMode] = useState('all');
   const [draftCreatedDate, setDraftCreatedDate] = useState('');
+  const [draftCreatedMonth, setDraftCreatedMonth] = useState('');
   const [draftStatus, setDraftStatus] = useState('all');
 
+  const [appliedDateMode, setAppliedDateMode] = useState('all');
   const [appliedCreatedDate, setAppliedCreatedDate] = useState('');
+  const [appliedCreatedMonth, setAppliedCreatedMonth] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('all');
 
   const [loading, setLoading] = useState(true);
@@ -70,7 +100,9 @@ function App() {
 
   async function loadMarkets(
     cursorValue = '',
+    dateModeValue = appliedDateMode,
     createdDateValue = appliedCreatedDate,
+    createdMonthValue = appliedCreatedMonth,
     statusValue = appliedStatus
   ) {
     try {
@@ -78,14 +110,20 @@ function App() {
       setError('');
 
       const params = new URLSearchParams();
-      params.set('limit', '200');
+      params.set('limit', '500');
       params.set('mve_filter', 'exclude');
 
-      const dayRange = getUtcDayRange(createdDateValue);
+      let timeRange = null;
 
-      if (dayRange) {
-        params.set('min_created_ts', String(dayRange.minTs));
-        params.set('max_created_ts', String(dayRange.maxTs));
+      if (dateModeValue === 'day') {
+        timeRange = getUtcDayRange(createdDateValue);
+      } else if (dateModeValue === 'month') {
+        timeRange = getUtcMonthRange(createdMonthValue);
+      }
+
+      if (timeRange) {
+        params.set('min_created_ts', String(timeRange.minTs));
+        params.set('max_created_ts', String(timeRange.maxTs));
       } else if (statusValue !== 'all') {
         params.set('status', statusValue);
       }
@@ -144,22 +182,32 @@ function App() {
     null;
 
   function applyFilters() {
+    setAppliedDateMode(draftDateMode);
     setAppliedCreatedDate(draftCreatedDate);
+    setAppliedCreatedMonth(draftCreatedMonth);
     setAppliedStatus(draftStatus);
     setCursorHistory([]);
     setCurrentCursor('');
-    loadMarkets('', draftCreatedDate, draftStatus);
+
+    loadMarkets('', draftDateMode, draftCreatedDate, draftCreatedMonth, draftStatus);
   }
 
   function clearFilters() {
+    setDraftDateMode('all');
     setDraftCreatedDate('');
+    setDraftCreatedMonth('');
     setDraftStatus('all');
+
+    setAppliedDateMode('all');
     setAppliedCreatedDate('');
+    setAppliedCreatedMonth('');
     setAppliedStatus('all');
+
     setSearchTerm('');
     setCursorHistory([]);
     setCurrentCursor('');
-    loadMarkets('', '', 'all');
+
+    loadMarkets('', 'all', '', '', 'all');
   }
 
   function goToNextPage() {
@@ -189,8 +237,8 @@ function App() {
             <p className="eyebrow">Kalshi Trading</p>
             <h1>Market Monitoring Dashboard</h1>
             <p className="subtext">
-              Filter by created date, search loaded results, and inspect market status without
-              trying to dump every Kalshi market into your browser.
+              Filter by UTC day or UTC month, search loaded results, and inspect market status
+              without trying to drag the entire platform into your browser at once.
             </p>
           </div>
         </header>
@@ -208,13 +256,32 @@ function App() {
           </div>
 
           <div className="control-group">
-            <label htmlFor="createdDate">Created on (UTC date)</label>
-            <input
-              id="createdDate"
-              type="date"
-              value={draftCreatedDate}
-              onChange={(e) => setDraftCreatedDate(e.target.value)}
-            />
+            <label htmlFor="dateMode">Created filter (UTC)</label>
+            <select
+              id="dateMode"
+              value={draftDateMode}
+              onChange={(e) => setDraftDateMode(e.target.value)}
+            >
+              <option value="all">No date filter</option>
+              <option value="day">Specific day</option>
+              <option value="month">Entire month</option>
+            </select>
+
+            {draftDateMode === 'day' && (
+              <input
+                type="date"
+                value={draftCreatedDate}
+                onChange={(e) => setDraftCreatedDate(e.target.value)}
+              />
+            )}
+
+            {draftDateMode === 'month' && (
+              <input
+                type="month"
+                value={draftCreatedMonth}
+                onChange={(e) => setDraftCreatedMonth(e.target.value)}
+              />
+            )}
           </div>
 
           <div className="control-group">
@@ -255,8 +322,10 @@ function App() {
           </article>
 
           <article className="summary-card">
-            <span className="summary-label">Created date</span>
-            <strong>{appliedCreatedDate || 'Any'}</strong>
+            <span className="summary-label">Created filter</span>
+            <strong>
+              {getAppliedDateLabel(appliedDateMode, appliedCreatedDate, appliedCreatedMonth)}
+            </strong>
           </article>
 
           <article className="summary-card">
