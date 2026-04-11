@@ -2,25 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 
 const BASE_URL = 'https://api.elections.kalshi.com/trade-api/v2/markets';
+const PAGE_SIZE = 500;
 
-const PAGE_LIMIT = 500;
-const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-const HIGH_VOLUME_THRESHOLD = 10000;
-const HIGH_CERTAINTY_THRESHOLD = 0.8;
+const HIGH_VOLUME_THRESHOLD = 1000;
+const HIGH_CERTAINTY_THRESHOLD = 0.9;
 const LOW_CERTAINTY_LOWER = 0.45;
 const LOW_CERTAINTY_UPPER = 0.55;
-
-function formatMoney(value) {
-  const num = Number(value);
-  if (Number.isNaN(num)) return 'N/A';
-  return `$${num.toFixed(2)}`;
-}
-
-function formatNumber(value) {
-  const num = Number(value);
-  if (Number.isNaN(num)) return 'N/A';
-  return num.toLocaleString();
-}
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+const MAX_SUGGESTIONS = 8;
 
 function formatDate(value) {
   if (!value) return 'N/A';
@@ -29,22 +18,34 @@ function formatDate(value) {
   return date.toLocaleString();
 }
 
-function getUtcDayRange(dateString) {
-  if (!dateString) return null;
-
-  const start = new Date(`${dateString}T00:00:00Z`);
-  const end = new Date(`${dateString}T23:59:59Z`);
-
-  return {
-    minTs: Math.floor(start.getTime() / 1000),
-    maxTs: Math.floor(end.getTime() / 1000),
-  };
+function formatMoney(value) {
+  const num = Number(value);
+  if (Number.isNaN(num)) return 'N/A';
+  return `$${num.toFixed(3)}`;
 }
 
-function getUtcMonthRange(monthString) {
-  if (!monthString) return null;
+function formatNumber(value) {
+  const num = Number(value);
+  if (Number.isNaN(num)) return 'N/A';
+  return num.toLocaleString();
+}
 
-  const [yearStr, monthStr] = monthString.split('-');
+function matchesStatus(marketStatus, appliedStatus) {
+  if (appliedStatus === 'all') return true;
+
+  const normalized = (marketStatus || '').toLowerCase();
+
+  if (appliedStatus === 'open') {
+    return normalized === 'open' || normalized === 'active';
+  }
+
+  return normalized === appliedStatus;
+}
+
+function getUtcMonthRange(monthValue) {
+  if (!monthValue) return null;
+
+  const [yearStr, monthStr] = monthValue.split('-');
   const year = Number(yearStr);
   const monthIndex = Number(monthStr) - 1;
 
@@ -57,41 +58,95 @@ function getUtcMonthRange(monthString) {
     return null;
   }
 
-  const start = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0));
-  const end = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59));
+  const start = Date.UTC(year, monthIndex, 1, 0, 0, 0, 0);
+  const end = Date.UTC(year, monthIndex + 1, 1, 0, 0, 0, 0) - 1;
 
   return {
-    minTs: Math.floor(start.getTime() / 1000),
-    maxTs: Math.floor(end.getTime() / 1000),
+    minTs: Math.floor(start / 1000),
+    maxTs: Math.floor(end / 1000),
   };
 }
 
-function normalizeStatus(status) {
-  return (status || '').toLowerCase();
-}
+function getUtcDayRange(dateValue) {
+  if (!dateValue) return null;
 
-function matchesStatus(marketStatus, selectedStatus) {
-  if (selectedStatus === 'all') return true;
+  const [yearStr, monthStr, dayStr] = dateValue.split('-');
+  const year = Number(yearStr);
+  const monthIndex = Number(monthStr) - 1;
+  const day = Number(dayStr);
 
-  const normalized = normalizeStatus(marketStatus);
-
-  if (selectedStatus === 'open') {
-    return normalized === 'open' || normalized === 'active';
+  if (
+    Number.isNaN(year) ||
+    Number.isNaN(monthIndex) ||
+    Number.isNaN(day) ||
+    monthIndex < 0 ||
+    monthIndex > 11
+  ) {
+    return null;
   }
 
-  return normalized === selectedStatus;
+  const start = Date.UTC(year, monthIndex, day, 0, 0, 0, 0);
+  const end = Date.UTC(year, monthIndex, day + 1, 0, 0, 0, 0) - 1;
+
+  return {
+    minTs: Math.floor(start / 1000),
+    maxTs: Math.floor(end / 1000),
+  };
 }
 
-function getAppliedDateLabel(mode, dayValue, monthValue) {
-  if (mode === 'day' && dayValue) return dayValue;
-  if (mode === 'month' && monthValue) return monthValue;
-  return 'Any';
+function getTimeRange(dateMode, createdDate, createdMonth) {
+  if (dateMode === 'day') {
+    return getUtcDayRange(createdDate);
+  }
+
+  if (dateMode === 'month') {
+    return getUtcMonthRange(createdMonth);
+  }
+
+  return null;
+}
+
+function buildSearchBlob(market) {
+  return [
+    market.title,
+    market.subtitle,
+    market.ticker,
+    market.event_ticker,
+    market.series_ticker,
+    market.yes_sub_title,
+    market.no_sub_title,
+    market.rules_primary,
+    market.rules_secondary,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function matchesKeywordSearch(market, query) {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return true;
+
+  const keywords = trimmed.split(/\s+/).filter(Boolean);
+  const haystack = buildSearchBlob(market);
+
+  return keywords.every((word) => haystack.includes(word));
+}
+
+function getSuggestionLabel(market) {
+  return market.title || market.subtitle || market.ticker || 'Untitled market';
 }
 
 function App() {
   const [markets, setMarkets] = useState([]);
-  const [selectedTicker, setSelectedTicker] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTicker, setSelectedTicker] = useState('');
+  const [nextCursor, setNextCursor] = useState('');
+  const [currentCursor, setCurrentCursor] = useState('');
+  const [cursorHistory, setCursorHistory] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState('');
 
   const [draftDateMode, setDraftDateMode] = useState('all');
   const [draftCreatedDate, setDraftCreatedDate] = useState('');
@@ -103,12 +158,7 @@ function App() {
   const [appliedCreatedMonth, setAppliedCreatedMonth] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('all');
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [lastUpdated, setLastUpdated] = useState('');
-  const [nextCursor, setNextCursor] = useState('');
-  const [cursorHistory, setCursorHistory] = useState([]);
-  const [currentCursor, setCurrentCursor] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   async function loadMarkets(
     cursorValue = '',
@@ -122,16 +172,13 @@ function App() {
       setError('');
 
       const params = new URLSearchParams();
-      params.set('limit', String(PAGE_LIMIT));
-      params.set('mve_filter', 'exclude');
+      params.set('limit', String(PAGE_SIZE));
 
-      let timeRange = null;
-
-      if (dateModeValue === 'day') {
-        timeRange = getUtcDayRange(createdDateValue);
-      } else if (dateModeValue === 'month') {
-        timeRange = getUtcMonthRange(createdMonthValue);
-      }
+      const timeRange = getTimeRange(
+        dateModeValue,
+        createdDateValue,
+        createdMonthValue
+      );
 
       if (timeRange) {
         params.set('min_created_ts', String(timeRange.minTs));
@@ -178,15 +225,36 @@ function App() {
 
   const filteredMarkets = useMemo(() => {
     return markets.filter((market) => {
-      const title = (market.title || '').toLowerCase();
-      const ticker = (market.ticker || '').toLowerCase();
-      const query = searchTerm.toLowerCase();
-
-      const matchesText = title.includes(query) || ticker.includes(query);
+      const matchesText = matchesKeywordSearch(market, searchTerm);
       const matchesChosenStatus = matchesStatus(market.status, appliedStatus);
-
       return matchesText && matchesChosenStatus;
     });
+  }, [markets, searchTerm, appliedStatus]);
+
+  const autocompleteSuggestions = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return [];
+
+    const suggestions = [];
+    const seen = new Set();
+
+    for (const market of markets) {
+      if (!matchesStatus(market.status, appliedStatus)) continue;
+      if (!matchesKeywordSearch(market, query)) continue;
+      if (seen.has(market.ticker)) continue;
+
+      suggestions.push({
+        ticker: market.ticker,
+        title: getSuggestionLabel(market),
+        status: market.status || 'N/A',
+      });
+
+      seen.add(market.ticker);
+
+      if (suggestions.length >= MAX_SUGGESTIONS) break;
+    }
+
+    return suggestions;
   }, [markets, searchTerm, appliedStatus]);
 
   const selectedMarket =
@@ -234,6 +302,7 @@ function App() {
     setAppliedStatus(draftStatus);
     setCursorHistory([]);
     setCurrentCursor('');
+    setShowSuggestions(false);
 
     loadMarkets('', draftDateMode, draftCreatedDate, draftCreatedMonth, draftStatus);
   }
@@ -252,6 +321,7 @@ function App() {
     setSearchTerm('');
     setCursorHistory([]);
     setCurrentCursor('');
+    setShowSuggestions(false);
 
     loadMarkets('', 'all', '', '', 'all');
   }
@@ -261,6 +331,7 @@ function App() {
 
     setCursorHistory((prev) => [...prev, currentCursor]);
     setCurrentCursor(nextCursor);
+    setShowSuggestions(false);
     loadMarkets(nextCursor);
   }
 
@@ -272,7 +343,29 @@ function App() {
 
     setCursorHistory(newHistory);
     setCurrentCursor(previousCursor);
+    setShowSuggestions(false);
     loadMarkets(previousCursor);
+  }
+
+  function handleSuggestionSelect(suggestion) {
+    setSearchTerm(suggestion.title);
+    setSelectedTicker(suggestion.ticker);
+    setShowSuggestions(false);
+  }
+
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      setShowSuggestions(false);
+
+      if (filteredMarkets.length > 0) {
+        setSelectedTicker(filteredMarkets[0].ticker);
+      }
+    }
+
+    if (event.key === 'Escape') {
+      setShowSuggestions(false);
+    }
   }
 
   return (
@@ -283,23 +376,60 @@ function App() {
             <p className="eyebrow">Kalshi Trading</p>
             <h1>Market Monitoring Dashboard</h1>
             <p className="subtext">
-              Filter by UTC day or UTC month, search loaded results, and inspect
-              market status without trying to drag the entire platform into your
-              browser at once.
+              Search by keyword, filter by UTC day or month, and inspect markets
+              without manually digging through ticker soup.
             </p>
           </div>
         </header>
 
         <section className="toolbar">
-          <div className="control-group">
-            <label htmlFor="search">Search loaded results</label>
-            <input
-              id="search"
-              type="text"
-              placeholder="Search by title or ticker"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="control-group search-group">
+            <label htmlFor="search">Keyword search</label>
+            <div className="autocomplete-wrap">
+              <input
+                id="search"
+                type="text"
+                placeholder="Try: trump, fed rates, bitcoin, hurricane"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => {
+                  if (searchTerm.trim()) {
+                    setShowSuggestions(true);
+                  }
+                }}
+                onKeyDown={handleSearchKeyDown}
+                autoComplete="off"
+              />
+
+              {showSuggestions && autocompleteSuggestions.length > 0 && (
+                <div className="autocomplete-dropdown">
+                  {autocompleteSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.ticker}
+                      type="button"
+                      className="autocomplete-item"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSuggestionSelect(suggestion)}
+                    >
+                      <div className="autocomplete-top">
+                        <span className="autocomplete-ticker">
+                          {suggestion.ticker}
+                        </span>
+                        <span className="autocomplete-status">
+                          {suggestion.status}
+                        </span>
+                      </div>
+                      <div className="autocomplete-title">
+                        {suggestion.title}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="control-group">
@@ -359,123 +489,74 @@ function App() {
 
         <section className="summary-grid">
           <article className="summary-card">
-            <span className="summary-label">Closing in 24 hours</span>
-            <strong>{loading ? '...' : closingIn24HoursCount}</strong>
+            <p className="summary-label">Markets closing in 24h</p>
+            <h2>{formatNumber(closingIn24HoursCount)}</h2>
           </article>
 
           <article className="summary-card">
-            <span className="summary-label">High volume (10k+)</span>
-            <strong>{loading ? '...' : highVolumeCount}</strong>
+            <p className="summary-label">High volume markets</p>
+            <h2>{formatNumber(highVolumeCount)}</h2>
           </article>
 
           <article className="summary-card">
-            <span className="summary-label">High certainty</span>
-            <strong>{loading ? '...' : highCertaintyCount}</strong>
+            <p className="summary-label">High certainty markets</p>
+            <h2>{formatNumber(highCertaintyCount)}</h2>
           </article>
 
           <article className="summary-card">
-            <span className="summary-label">Low certainty</span>
-            <strong>{loading ? '...' : lowCertaintyCount}</strong>
+            <p className="summary-label">Low certainty markets</p>
+            <h2>{formatNumber(lowCertaintyCount)}</h2>
           </article>
         </section>
 
-        <section className="paging-bar">
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={goToPreviousPage}
-            disabled={loading || cursorHistory.length === 0}
-          >
-            Previous page
-          </button>
-
-          <button
-            type="button"
-            className="ghost-button"
-            onClick={goToNextPage}
-            disabled={loading || !nextCursor}
-          >
-            Next page
-          </button>
+        <section className="status-row">
+          <p>
+            Showing <strong>{filteredMarkets.length}</strong> of{' '}
+            <strong>{markets.length}</strong> loaded markets
+          </p>
+          <p>Last updated: {lastUpdated || 'N/A'}</p>
         </section>
 
-        {loading && <div className="message-box">Loading markets...</div>}
-
-        {error && !loading && (
-          <div className="error-box">
-            <strong>Fetch failed.</strong>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {!loading && !error && (
+        {loading ? (
+          <div className="empty-state">Loading markets...</div>
+        ) : error ? (
+          <div className="empty-state error-state">{error}</div>
+        ) : (
           <>
-            <section className="summary-grid">
-              <article className="summary-card">
-                <span className="summary-label">Loaded this page</span>
-                <strong>{markets.length}</strong>
-              </article>
-
-              <article className="summary-card">
-                <span className="summary-label">Shown after filters</span>
-                <strong>{filteredMarkets.length}</strong>
-              </article>
-
-              <article className="summary-card">
-                <span className="summary-label">Created filter</span>
-                <strong>
-                  {getAppliedDateLabel(
-                    appliedDateMode,
-                    appliedCreatedDate,
-                    appliedCreatedMonth
-                  )}
-                </strong>
-              </article>
-
-              <article className="summary-card">
-                <span className="summary-label">Last updated</span>
-                <strong className="small-strong">
-                  {lastUpdated || 'Waiting...'}
-                </strong>
-              </article>
-            </section>
-
-            <main className="content-grid">
-              <section className="panel">
+            <main className="dashboard-main">
+              <section className="panel list-panel">
                 <div className="panel-header">
-                  <h2>Market list</h2>
-                  <p>{filteredMarkets.length} shown</p>
+                  <h2>Markets</h2>
+                  <p>Keyword matches across loaded results</p>
                 </div>
 
                 <div className="market-list">
-                  {filteredMarkets.map((market) => (
-                    <button
-                      key={market.ticker}
-                      type="button"
-                      className={
-                        selectedMarket?.ticker === market.ticker
-                          ? 'market-row selected'
-                          : 'market-row'
-                      }
-                      onClick={() => setSelectedTicker(market.ticker)}
-                    >
-                      <div className="market-row-main">
-                        <p className="ticker">{market.ticker}</p>
-                        <h3>{market.title}</h3>
-                      </div>
+                  {filteredMarkets.map((market) => {
+                    const isSelected = market.ticker === selectedMarket?.ticker;
 
-                      <div className="market-row-meta">
-                        <span>Status: {market.status || 'N/A'}</span>
-                        <span>Created: {formatDate(market.created_time)}</span>
-                        <span>Yes ask: {formatMoney(market.yes_ask_dollars)}</span>
-                        <span>Volume: {formatNumber(market.volume_fp)}</span>
-                      </div>
-                    </button>
-                  ))}
+                    return (
+                      <button
+                        key={market.ticker}
+                        type="button"
+                        className={`market-row ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setSelectedTicker(market.ticker)}
+                      >
+                        <div className="market-row-main">
+                          <p className="market-title">{market.title || 'Untitled market'}</p>
+                          <p className="market-ticker">{market.ticker}</p>
+                        </div>
+
+                        <div className="market-row-side">
+                          <span className="market-badge">{market.status || 'N/A'}</span>
+                          <span>{formatMoney(market.yes_ask_dollars)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
 
                   {filteredMarkets.length === 0 && (
                     <div className="empty-state">
-                      No markets match the current filters.
+                      No markets match the current keyword search.
                     </div>
                   )}
                 </div>
@@ -546,6 +627,26 @@ function App() {
                 )}
               </aside>
             </main>
+
+            <section className="pagination-row">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={goToPreviousPage}
+                disabled={cursorHistory.length === 0}
+              >
+                Previous
+              </button>
+
+              <button
+                type="button"
+                className="primary-button"
+                onClick={goToNextPage}
+                disabled={!nextCursor}
+              >
+                Next
+              </button>
+            </section>
           </>
         )}
       </div>
