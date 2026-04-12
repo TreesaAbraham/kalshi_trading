@@ -343,3 +343,15 @@
   line-height: 1.35;
   color: #cbd5e1;
 }
+.market-row,
+.market-row * {
+  color: #e5e7eb;
+}
+
+.market-title {
+  color: #f8fafc;
+}
+
+.market-ticker {
+  color: #cbd5e1;
+}

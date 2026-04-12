@@ -134,7 +134,11 @@ function matchesKeywordSearch(market, query) {
 }
 
 function getSuggestionLabel(market) {
-  return market.title || market.subtitle || market.ticker || 'Untitled market';
+  return market.subtitle || market.title || market.ticker || 'Untitled market';
+}
+
+function getMarketDisplayQuestion(market) {
+  return market.subtitle || market.title || 'Untitled market';
 }
 
 function App() {
@@ -542,13 +546,15 @@ function App() {
                         onClick={() => setSelectedTicker(market.ticker)}
                       >
                         <div className="market-row-main">
-                          <p className="market-title">{market.title || 'Untitled market'}</p>
-                          <p className="market-ticker">{market.ticker}</p>
+                          <p className="ticker">{market.ticker}</p>
+                          <h3>{getMarketDisplayQuestion(market)}</h3>
                         </div>
 
-                        <div className="market-row-side">
-                          <span className="market-badge">{market.status || 'N/A'}</span>
-                          <span>{formatMoney(market.yes_ask_dollars)}</span>
+                        <div className="market-row-meta">
+                          <span>Status: {market.status || 'N/A'}</span>
+                          <span>Created: {formatDate(market.created_time)}</span>
+                          <span>Yes ask: {formatMoney(market.yes_ask_dollars)}</span>
+                          <span>Volume: {formatNumber(market.volume_fp)}</span>
                         </div>
                       </button>
                     );
