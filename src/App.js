@@ -133,12 +133,105 @@ function matchesKeywordSearch(market, query) {
   return keywords.every((word) => haystack.includes(word));
 }
 
-function getSuggestionLabel(market) {
-  return market.subtitle || market.title || market.ticker || 'Untitled market';
+function isComboMarket(market) {
+  const hasSelectedLegs =
+    Array.isArray(market.mve_selected_legs) && market.mve_selected_legs.length > 0;
+
+  const hasCollectionTicker =
+    typeof market.mve_collection_ticker === 'string' &&
+    market.mve_collection_ticker.trim() !== '';
+
+  return hasSelectedLegs || hasCollectionTicker;
 }
 
-function getMarketDisplayQuestion(market) {
-  return market.subtitle || market.title || 'Untitled market';
+function parseTickerDate(token) {
+  const match = token.match(/^(\d{2})([A-Z]{3})(\d{2})$/);
+  if (!match) return '';
+
+  const [, yy, mon, dd] = match;
+  const monthMap = {
+    JAN: 'Jan',
+    FEB: 'Feb',
+    MAR: 'Mar',
+    APR: 'Apr',
+    MAY: 'May',
+    JUN: 'Jun',
+    JUL: 'Jul',
+    AUG: 'Aug',
+    SEP: 'Sep',
+    OCT: 'Oct',
+    NOV: 'Nov',
+    DEC: 'Dec',
+  };
+
+  const month = monthMap[mon];
+  if (!month) return '';
+
+  return `${month} ${Number(dd)}, 20${yy}`;
+}
+
+function humanizeTickerPrefix(prefix) {
+  const known = [
+    { key: 'KXSPOTIFYAUSTRALIAD', label: 'Spotify Australia daily chart market' },
+    { key: 'KXSPOTIFYAUSTRALIA', label: 'Spotify Australia market' },
+    { key: 'KXSPOTIFY', label: 'Spotify market' },
+    { key: 'KXNBAGAME', label: 'NBA game winner market' },
+    { key: 'KXNBAPTS', label: 'NBA player points market' },
+    { key: 'KXNBAREB', label: 'NBA rebounds market' },
+    { key: 'KXNBAAST', label: 'NBA assists market' },
+    { key: 'KXNBATOTAL', label: 'NBA total points market' },
+    { key: 'KXNBASPREAD', label: 'NBA spread market' },
+    { key: 'KXNCAAMBGAME', label: 'NCAA men’s game winner market' },
+    { key: 'KXNCAAWBGAME', label: 'NCAA women’s game winner market' },
+    { key: 'KXUFCFIGHT', label: 'UFC fight winner market' },
+    { key: 'KXATPMATCH', label: 'ATP match winner market' },
+    { key: 'KXWTAMATCH', label: 'WTA match winner market' },
+    { key: 'KXNHLGAME', label: 'NHL game winner market' },
+  ];
+
+  const match = known.find((item) => prefix.startsWith(item.key));
+  if (match) return match.label;
+
+  return prefix
+    .replace(/^KX/, '')
+    .replace(/([A-Z]+)(\d+)/g, '$1 $2')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .toLowerCase();
+}
+
+function getEventContextFromTicker(market) {
+  const raw = market.event_ticker || market.ticker || '';
+  if (!raw) return 'Single market';
+
+  const parts = raw.split('-');
+  if (parts.length === 0) return raw;
+
+  const prefix = parts[0];
+  const dateToken = parts.find((part) => /^\d{2}[A-Z]{3}\d{2}$/.test(part));
+  const label = humanizeTickerPrefix(prefix);
+  const parsedDate = dateToken ? parseTickerDate(dateToken) : '';
+
+  if (parsedDate) {
+    return `${label} · ${parsedDate}`;
+  }
+
+  return label;
+}
+
+function getOutcomeLabel(market) {
+  return (
+    market.subtitle ||
+    market.title ||
+    market.yes_sub_title ||
+    market.no_sub_title ||
+    'Untitled outcome'
+  );
+}
+
+function getSuggestionLabel(market) {
+  const context = getEventContextFromTicker(market);
+  const outcome = getOutcomeLabel(market);
+  return `${context} · ${outcome}`;
 }
 
 function App() {
@@ -209,8 +302,11 @@ function App() {
       setLastUpdated(new Date().toLocaleString());
 
       setSelectedTicker((prevTicker) => {
-        const stillExists = marketList.some((market) => market.ticker === prevTicker);
-        return stillExists ? prevTicker : marketList[0]?.ticker || '';
+        const visibleMarkets = marketList.filter((market) => !isComboMarket(market));
+        const stillExists = visibleMarkets.some(
+          (market) => market.ticker === prevTicker
+        );
+        return stillExists ? prevTicker : visibleMarkets[0]?.ticker || '';
       });
     } catch (err) {
       setError(err.message || 'Something went wrong while loading markets.');
@@ -231,7 +327,9 @@ function App() {
     return markets.filter((market) => {
       const matchesText = matchesKeywordSearch(market, searchTerm);
       const matchesChosenStatus = matchesStatus(market.status, appliedStatus);
-      return matchesText && matchesChosenStatus;
+      const isSingleMarket = !isComboMarket(market);
+
+      return matchesText && matchesChosenStatus && isSingleMarket;
     });
   }, [markets, searchTerm, appliedStatus]);
 
@@ -243,6 +341,7 @@ function App() {
     const seen = new Set();
 
     for (const market of markets) {
+      if (isComboMarket(market)) continue;
       if (!matchesStatus(market.status, appliedStatus)) continue;
       if (!matchesKeywordSearch(market, query)) continue;
       if (seen.has(market.ticker)) continue;
@@ -266,7 +365,7 @@ function App() {
     filteredMarkets[0] ||
     null;
 
-  const closingIn24HoursCount = markets.filter((market) => {
+  const closingIn24HoursCount = filteredMarkets.filter((market) => {
     if (!market.close_time) return false;
 
     const closeTime = new Date(market.close_time).getTime();
@@ -276,12 +375,12 @@ function App() {
     return timeUntilClose >= 0 && timeUntilClose <= TWENTY_FOUR_HOURS_MS;
   }).length;
 
-  const highVolumeCount = markets.filter((market) => {
+  const highVolumeCount = filteredMarkets.filter((market) => {
     const volume = Number(market.volume_fp);
     return !Number.isNaN(volume) && volume >= HIGH_VOLUME_THRESHOLD;
   }).length;
 
-  const highCertaintyCount = markets.filter((market) => {
+  const highCertaintyCount = filteredMarkets.filter((market) => {
     const yesPrice = Number(market.yes_ask_dollars);
     return (
       !Number.isNaN(yesPrice) &&
@@ -290,7 +389,7 @@ function App() {
     );
   }).length;
 
-  const lowCertaintyCount = markets.filter((market) => {
+  const lowCertaintyCount = filteredMarkets.filter((market) => {
     const yesPrice = Number(market.yes_ask_dollars);
     return (
       !Number.isNaN(yesPrice) &&
@@ -380,8 +479,8 @@ function App() {
             <p className="eyebrow">Kalshi Trading</p>
             <h1>Market Monitoring Dashboard</h1>
             <p className="subtext">
-              Search by keyword, filter by UTC day or month, and inspect markets
-              without manually digging through ticker soup.
+              Search single markets by topic, see the broader market context,
+              and then inspect the specific contract outcome underneath.
             </p>
           </div>
         </header>
@@ -393,7 +492,7 @@ function App() {
               <input
                 id="search"
                 type="text"
-                placeholder="Try: trump, fed rates, bitcoin, hurricane"
+                placeholder="Try: trump, spotify, bitcoin, hurricane"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -531,12 +630,14 @@ function App() {
               <section className="panel list-panel">
                 <div className="panel-header">
                   <h2>Markets</h2>
-                  <p>Keyword matches across loaded results</p>
+                  <p>Context first, contract outcome second</p>
                 </div>
 
                 <div className="market-list">
                   {filteredMarkets.map((market) => {
                     const isSelected = market.ticker === selectedMarket?.ticker;
+                    const eventContext = getEventContextFromTicker(market);
+                    const outcomeLabel = getOutcomeLabel(market);
 
                     return (
                       <button
@@ -546,8 +647,8 @@ function App() {
                         onClick={() => setSelectedTicker(market.ticker)}
                       >
                         <div className="market-row-main">
-                          <p className="ticker">{market.ticker}</p>
-                          <h3>{getMarketDisplayQuestion(market)}</h3>
+                          <p className="ticker">{eventContext}</p>
+                          <h3>{outcomeLabel}</h3>
                         </div>
 
                         <div className="market-row-meta">
@@ -562,7 +663,7 @@ function App() {
 
                   {filteredMarkets.length === 0 && (
                     <div className="empty-state">
-                      No markets match the current keyword search.
+                      No single markets match the current keyword search.
                     </div>
                   )}
                 </div>
@@ -577,13 +678,18 @@ function App() {
                 {selectedMarket ? (
                   <div className="detail-stack">
                     <div className="detail-block">
-                      <span className="detail-label">Ticker</span>
-                      <p>{selectedMarket.ticker}</p>
+                      <span className="detail-label">Market context</span>
+                      <p>{getEventContextFromTicker(selectedMarket)}</p>
                     </div>
 
                     <div className="detail-block">
-                      <span className="detail-label">Title</span>
-                      <p>{selectedMarket.title}</p>
+                      <span className="detail-label">Outcome</span>
+                      <p>{getOutcomeLabel(selectedMarket)}</p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">Ticker</span>
+                      <p>{selectedMarket.ticker}</p>
                     </div>
 
                     <div className="detail-grid">
