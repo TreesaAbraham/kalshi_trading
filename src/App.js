@@ -1,4 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import './App.css';
 
 const BASE_URL = 'https://api.elections.kalshi.com/trade-api/v2/markets';
@@ -234,6 +243,34 @@ function getSuggestionLabel(market) {
   return `${context} · ${outcome}`;
 }
 
+function matchesMarketScope(market, scope) {
+  const combo = isComboMarket(market);
+
+  if (scope === 'combo') return combo;
+  if (scope === 'single') return !combo;
+
+  return true;
+}
+
+function formatChartDate(tsSeconds) {
+  const date = new Date(tsSeconds * 1000);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function getCandlestickInterval(startMs, endMs) {
+  const spanMs = endMs - startMs;
+  const oneDay = 24 * 60 * 60 * 1000;
+  const sevenDays = 7 * oneDay;
+
+  if (spanMs <= oneDay) return 1;
+  if (spanMs <= sevenDays) return 60;
+  return 1440;
+}
+
 function App() {
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -249,20 +286,27 @@ function App() {
   const [draftCreatedDate, setDraftCreatedDate] = useState('');
   const [draftCreatedMonth, setDraftCreatedMonth] = useState('');
   const [draftStatus, setDraftStatus] = useState('all');
+  const [draftMarketScope, setDraftMarketScope] = useState('single');
 
   const [appliedDateMode, setAppliedDateMode] = useState('all');
   const [appliedCreatedDate, setAppliedCreatedDate] = useState('');
   const [appliedCreatedMonth, setAppliedCreatedMonth] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('all');
+  const [appliedMarketScope, setAppliedMarketScope] = useState('single');
 
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [historyData, setHistoryData] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
 
   async function loadMarkets(
     cursorValue = '',
     dateModeValue = appliedDateMode,
     createdDateValue = appliedCreatedDate,
     createdMonthValue = appliedCreatedMonth,
-    statusValue = appliedStatus
+    statusValue = appliedStatus,
+    marketScopeValue = appliedMarketScope
   ) {
     try {
       setLoading(true);
@@ -302,10 +346,14 @@ function App() {
       setLastUpdated(new Date().toLocaleString());
 
       setSelectedTicker((prevTicker) => {
-        const visibleMarkets = marketList.filter((market) => !isComboMarket(market));
+        const visibleMarkets = marketList.filter((market) =>
+          matchesMarketScope(market, marketScopeValue)
+        );
+
         const stillExists = visibleMarkets.some(
           (market) => market.ticker === prevTicker
         );
+
         return stillExists ? prevTicker : visibleMarkets[0]?.ticker || '';
       });
     } catch (err) {
@@ -318,6 +366,124 @@ function App() {
     }
   }
 
+  async function loadMarketHistory(market) {
+    if (!market?.ticker) {
+      setHistoryData([]);
+      setHistoryError('');
+      return;
+    }
+  
+    try {
+      setHistoryLoading(true);
+      setHistoryError('');
+  
+      const startMs = new Date(
+        market.open_time || market.created_time || Date.now()
+      ).getTime();
+      const endMs = Date.now();
+  
+      const startTs = Math.floor(startMs / 1000);
+      const endTs = Math.floor(endMs / 1000);
+      const periodInterval = getCandlestickInterval(startMs, endMs);
+  
+      const rootUrl = BASE_URL.replace('/markets', '');
+      let data = null;
+  
+      if (market.series_ticker) {
+        const liveParams = new URLSearchParams({
+          start_ts: String(startTs),
+          end_ts: String(endTs),
+          period_interval: String(periodInterval),
+        });
+  
+        const liveUrl = `${rootUrl}/series/${market.series_ticker}/markets/${market.ticker}/candlesticks?${liveParams.toString()}`;
+        const liveResponse = await fetch(liveUrl);
+  
+        if (liveResponse.ok) {
+          data = await liveResponse.json();
+        }
+      }
+  
+      if (!data) {
+        const batchParams = new URLSearchParams({
+          market_tickers: market.ticker,
+          start_ts: String(startTs),
+          end_ts: String(endTs),
+          period_interval: String(periodInterval),
+        });
+  
+        const batchUrl = `${rootUrl}/markets/candlesticks?${batchParams.toString()}`;
+        const batchResponse = await fetch(batchUrl);
+  
+        if (batchResponse.ok) {
+          data = await batchResponse.json();
+        }
+      }
+  
+      if (!data) {
+        const historicalParams = new URLSearchParams({
+          start_ts: String(startTs),
+          end_ts: String(endTs),
+          period_interval: String(periodInterval),
+        });
+  
+        const historicalUrl = `${rootUrl}/historical/markets/${market.ticker}/candlesticks?${historicalParams.toString()}`;
+        const historicalResponse = await fetch(historicalUrl);
+  
+        if (historicalResponse.ok) {
+          data = await historicalResponse.json();
+        }
+      }
+  
+      if (!data) {
+        throw new Error('No candlestick source returned usable data.');
+      }
+  
+      let candlesticks = [];
+  
+      if (Array.isArray(data.candlesticks)) {
+        candlesticks = data.candlesticks;
+      } else if (Array.isArray(data.markets) && data.markets.length > 0) {
+        const batchMarket =
+          data.markets.find(
+            (item) =>
+              item.ticker === market.ticker || item.market_ticker === market.ticker
+          ) || data.markets[0];
+  
+        candlesticks = Array.isArray(batchMarket?.candlesticks)
+          ? batchMarket.candlesticks
+          : [];
+      }
+  
+      const chartPoints = candlesticks.map((candle) => {
+        const yesClose =
+          Number(
+            candle.price?.close_dollars ??
+              candle.price?.close ??
+              candle.yes_ask?.close_dollars ??
+              candle.yes_ask?.close
+          ) || 0;
+  
+        const clampedYes = Math.max(0, Math.min(1, yesClose));
+        const noClose = 1 - clampedYes;
+  
+        return {
+          ts: candle.end_period_ts,
+          dateLabel: formatChartDate(candle.end_period_ts),
+          yesPct: Number((clampedYes * 100).toFixed(2)),
+          noPct: Number((noClose * 100).toFixed(2)),
+        };
+      });
+  
+      setHistoryData(chartPoints);
+    } catch (err) {
+      setHistoryData([]);
+      setHistoryError(err.message || 'Failed to load market history.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadMarkets('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -327,21 +493,21 @@ function App() {
     return markets.filter((market) => {
       const matchesText = matchesKeywordSearch(market, searchTerm);
       const matchesChosenStatus = matchesStatus(market.status, appliedStatus);
-      const isSingleMarket = !isComboMarket(market);
+      const matchesChosenScope = matchesMarketScope(market, appliedMarketScope);
 
-      return matchesText && matchesChosenStatus && isSingleMarket;
+      return matchesText && matchesChosenStatus && matchesChosenScope;
     });
-  }, [markets, searchTerm, appliedStatus]);
+  }, [markets, searchTerm, appliedStatus, appliedMarketScope]);
 
   const autocompleteSuggestions = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) return [];
 
-    const suggestions = [];
     const seen = new Set();
+    const suggestions = [];
 
     for (const market of markets) {
-      if (isComboMarket(market)) continue;
+      if (!matchesMarketScope(market, appliedMarketScope)) continue;
       if (!matchesStatus(market.status, appliedStatus)) continue;
       if (!matchesKeywordSearch(market, query)) continue;
       if (seen.has(market.ticker)) continue;
@@ -351,63 +517,76 @@ function App() {
         title: getSuggestionLabel(market),
         status: market.status || 'N/A',
       });
-
       seen.add(market.ticker);
 
-      if (suggestions.length >= MAX_SUGGESTIONS) break;
+      if (suggestions.length >= MAX_SUGGESTIONS) {
+        break;
+      }
     }
 
     return suggestions;
-  }, [markets, searchTerm, appliedStatus]);
+  }, [markets, searchTerm, appliedStatus, appliedMarketScope]);
 
-  const selectedMarket =
-    filteredMarkets.find((market) => market.ticker === selectedTicker) ||
-    filteredMarkets[0] ||
-    null;
+  const selectedMarket = useMemo(() => {
+    return filteredMarkets.find((market) => market.ticker === selectedTicker) || null;
+  }, [filteredMarkets, selectedTicker]);
+
+  useEffect(() => {
+    if (!selectedMarket) {
+      setHistoryData([]);
+      setHistoryError('');
+      return;
+    }
+
+    loadMarketHistory(selectedMarket);
+  }, [selectedMarket]);
+
+  const now = Date.now();
 
   const closingIn24HoursCount = filteredMarkets.filter((market) => {
-    if (!market.close_time) return false;
-
     const closeTime = new Date(market.close_time).getTime();
     if (Number.isNaN(closeTime)) return false;
-
-    const timeUntilClose = closeTime - Date.now();
-    return timeUntilClose >= 0 && timeUntilClose <= TWENTY_FOUR_HOURS_MS;
+    return closeTime >= now && closeTime <= now + TWENTY_FOUR_HOURS_MS;
   }).length;
 
   const highVolumeCount = filteredMarkets.filter((market) => {
-    const volume = Number(market.volume_fp);
-    return !Number.isNaN(volume) && volume >= HIGH_VOLUME_THRESHOLD;
+    return Number(market.volume_fp) >= HIGH_VOLUME_THRESHOLD;
   }).length;
 
   const highCertaintyCount = filteredMarkets.filter((market) => {
-    const yesPrice = Number(market.yes_ask_dollars);
-    return (
-      !Number.isNaN(yesPrice) &&
-      (yesPrice >= HIGH_CERTAINTY_THRESHOLD ||
-        yesPrice <= 1 - HIGH_CERTAINTY_THRESHOLD)
-    );
+    const yesAsk = Number(market.yes_ask_dollars);
+    return !Number.isNaN(yesAsk) && yesAsk >= HIGH_CERTAINTY_THRESHOLD;
   }).length;
 
   const lowCertaintyCount = filteredMarkets.filter((market) => {
-    const yesPrice = Number(market.yes_ask_dollars);
+    const yesAsk = Number(market.yes_ask_dollars);
     return (
-      !Number.isNaN(yesPrice) &&
-      yesPrice >= LOW_CERTAINTY_LOWER &&
-      yesPrice <= LOW_CERTAINTY_UPPER
+      !Number.isNaN(yesAsk) &&
+      yesAsk >= LOW_CERTAINTY_LOWER &&
+      yesAsk <= LOW_CERTAINTY_UPPER
     );
   }).length;
+
+  const hasEnoughHistory = historyData.length >= 2;
 
   function applyFilters() {
     setAppliedDateMode(draftDateMode);
     setAppliedCreatedDate(draftCreatedDate);
     setAppliedCreatedMonth(draftCreatedMonth);
     setAppliedStatus(draftStatus);
+    setAppliedMarketScope(draftMarketScope);
     setCursorHistory([]);
     setCurrentCursor('');
     setShowSuggestions(false);
 
-    loadMarkets('', draftDateMode, draftCreatedDate, draftCreatedMonth, draftStatus);
+    loadMarkets(
+      '',
+      draftDateMode,
+      draftCreatedDate,
+      draftCreatedMonth,
+      draftStatus,
+      draftMarketScope
+    );
   }
 
   function clearFilters() {
@@ -415,26 +594,26 @@ function App() {
     setDraftCreatedDate('');
     setDraftCreatedMonth('');
     setDraftStatus('all');
+    setDraftMarketScope('single');
 
     setAppliedDateMode('all');
     setAppliedCreatedDate('');
     setAppliedCreatedMonth('');
     setAppliedStatus('all');
+    setAppliedMarketScope('single');
 
     setSearchTerm('');
     setCursorHistory([]);
     setCurrentCursor('');
     setShowSuggestions(false);
 
-    loadMarkets('', 'all', '', '', 'all');
+    loadMarkets('', 'all', '', '', 'all', 'single');
   }
 
   function goToNextPage() {
     if (!nextCursor) return;
-
     setCursorHistory((prev) => [...prev, currentCursor]);
     setCurrentCursor(nextCursor);
-    setShowSuggestions(false);
     loadMarkets(nextCursor);
   }
 
@@ -442,11 +621,10 @@ function App() {
     if (cursorHistory.length === 0) return;
 
     const previousCursor = cursorHistory[cursorHistory.length - 1];
-    const newHistory = cursorHistory.slice(0, -1);
+    const nextHistory = cursorHistory.slice(0, -1);
 
-    setCursorHistory(newHistory);
+    setCursorHistory(nextHistory);
     setCurrentCursor(previousCursor);
-    setShowSuggestions(false);
     loadMarkets(previousCursor);
   }
 
@@ -456,59 +634,41 @@ function App() {
     setShowSuggestions(false);
   }
 
-  function handleSearchKeyDown(event) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      setShowSuggestions(false);
-
-      if (filteredMarkets.length > 0) {
-        setSelectedTicker(filteredMarkets[0].ticker);
-      }
-    }
-
-    if (event.key === 'Escape') {
-      setShowSuggestions(false);
-    }
-  }
-
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-shell">
-        <header className="topbar">
+    <div className="App">
+      <div className="app-shell">
+        <header className="hero-section">
           <div>
-            <p className="eyebrow">Kalshi Trading</p>
-            <h1>Market Monitoring Dashboard</h1>
-            <p className="subtext">
-              Search single markets by topic, see the broader market context,
-              and then inspect the specific contract outcome underneath.
+            <p className="eyebrow">Kalshi Market Dashboard</p>
+            <h1>Explore active prediction markets</h1>
+            <p className="hero-copy">
+              Filter by created date, keyword, status, and now market type so combo
+              markets stop disappearing into the void.
             </p>
           </div>
         </header>
 
-        <section className="toolbar">
-          <div className="control-group search-group">
-            <label htmlFor="search">Keyword search</label>
-            <div className="autocomplete-wrap">
+        <section className="controls-panel">
+          <div className="control-row">
+            <div className="control-group search-group">
+              <label htmlFor="marketSearch">Search markets</label>
               <input
-                id="search"
+                id="marketSearch"
                 type="text"
-                placeholder="Try: trump, spotify, bitcoin, hurricane"
+                placeholder="Search by title, ticker, or subtitle"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setShowSuggestions(true);
                 }}
-                onFocus={() => {
-                  if (searchTerm.trim()) {
-                    setShowSuggestions(true);
-                  }
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowSuggestions(false), 150);
                 }}
-                onKeyDown={handleSearchKeyDown}
-                autoComplete="off"
               />
 
               {showSuggestions && autocompleteSuggestions.length > 0 && (
-                <div className="autocomplete-dropdown">
+                <div className="autocomplete-menu">
                   {autocompleteSuggestions.map((suggestion) => (
                     <button
                       key={suggestion.ticker}
@@ -580,6 +740,19 @@ function App() {
             </select>
           </div>
 
+          <div className="control-group">
+            <label htmlFor="marketScope">Market type</label>
+            <select
+              id="marketScope"
+              value={draftMarketScope}
+              onChange={(e) => setDraftMarketScope(e.target.value)}
+            >
+              <option value="single">Single markets only</option>
+              <option value="combo">Combo markets only</option>
+              <option value="all">All markets</option>
+            </select>
+          </div>
+
           <div className="button-row">
             <button type="button" className="primary-button" onClick={applyFilters}>
               Apply filters
@@ -638,6 +811,7 @@ function App() {
                     const isSelected = market.ticker === selectedMarket?.ticker;
                     const eventContext = getEventContextFromTicker(market);
                     const outcomeLabel = getOutcomeLabel(market);
+                    const marketTypeLabel = isComboMarket(market) ? 'Combo' : 'Single';
 
                     return (
                       <button
@@ -653,6 +827,7 @@ function App() {
 
                         <div className="market-row-meta">
                           <span>Status: {market.status || 'N/A'}</span>
+                          <span>Type: {marketTypeLabel}</span>
                           <span>Created: {formatDate(market.created_time)}</span>
                           <span>Yes ask: {formatMoney(market.yes_ask_dollars)}</span>
                           <span>Volume: {formatNumber(market.volume_fp)}</span>
@@ -690,6 +865,14 @@ function App() {
                     <div className="detail-block">
                       <span className="detail-label">Ticker</span>
                       <p>{selectedMarket.ticker}</p>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">Badges</span>
+                      <p>
+                        {isComboMarket(selectedMarket) ? 'Combo market' : 'Single market'}
+                        {!hasEnoughHistory && historyData.length > 0 ? ' · Sparse history' : ''}
+                      </p>
                     </div>
 
                     <div className="detail-grid">
@@ -732,6 +915,47 @@ function App() {
                         <span className="detail-label">Liquidity</span>
                         <p>{formatMoney(selectedMarket.liquidity_dollars)}</p>
                       </div>
+                    </div>
+
+                    <div className="detail-block">
+                      <span className="detail-label">Price history</span>
+
+                      {historyLoading ? (
+                        <p>Loading chart...</p>
+                      ) : historyError ? (
+                        <p>{historyError}</p>
+                      ) : historyData.length === 0 ? (
+                        <p>No historical price data available.</p>
+                      ) : !hasEnoughHistory ? (
+                        <p>Only one historical data point is available for this market.</p>
+                      ) : (
+                        <div style={{ width: '100%', height: 300, minWidth: 0 }}>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={historyData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="dateLabel" />
+                              <YAxis domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+                              <Tooltip formatter={(value) => `${value}%`} />
+                              <Line
+                                type="monotone"
+                                dataKey="yesPct"
+                                name="Yes"
+                                stroke="#10b981"
+                                dot={false}
+                                strokeWidth={2}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="noPct"
+                                name="No"
+                                stroke="#2563eb"
+                                dot={false}
+                                strokeWidth={2}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
