@@ -340,12 +340,12 @@ function getSuggestionLabel(market) {
   return `${outcome} · ${question}`;
 }
 
+/*
+  Important:
+  The frontend should NOT guess single/combo markets anymore.
+  Kalshi's API handles this through mve_filter in the request.
+*/
 function matchesMarketScope(market, scope) {
-  const combo = isComboMarket(market);
-
-  if (scope === 'combo') return combo;
-  if (scope === 'single') return !combo;
-
   return true;
 }
 
@@ -478,6 +478,16 @@ function App() {
   const [comparisonHistoryLoading, setComparisonHistoryLoading] = useState(false);
   const [comparisonHistoryError, setComparisonHistoryError] = useState('');
 
+  function addMarketScopeParam(params, marketScopeValue) {
+    if (marketScopeValue === 'single') {
+      params.set('mve_filter', 'exclude');
+    }
+
+    if (marketScopeValue === 'combo') {
+      params.set('mve_filter', 'only');
+    }
+  }
+
   async function loadMarkets(
     cursorValue = '',
     dateModeValue = appliedDateMode,
@@ -502,15 +512,11 @@ function App() {
           setLastUpdated(new Date().toLocaleString());
 
           setSelectedTicker((prevTicker) => {
-            const visibleMarkets = directMatches.filter((market) =>
-              matchesMarketScope(market, marketScopeValue)
-            );
-
-            const stillExists = visibleMarkets.some(
+            const stillExists = directMatches.some(
               (market) => market.ticker === prevTicker
             );
 
-            return stillExists ? prevTicker : visibleMarkets[0]?.ticker || '';
+            return stillExists ? prevTicker : directMatches[0]?.ticker || '';
           });
 
           return;
@@ -519,6 +525,7 @@ function App() {
 
       const params = new URLSearchParams();
       params.set('limit', String(PAGE_SIZE));
+      addMarketScopeParam(params, marketScopeValue);
 
       const timeRange = getTimeRange(
         dateModeValue,
@@ -551,15 +558,84 @@ function App() {
       setLastUpdated(new Date().toLocaleString());
 
       setSelectedTicker((prevTicker) => {
-        const visibleMarkets = marketList.filter((market) =>
-          matchesMarketScope(market, marketScopeValue)
-        );
-
-        const stillExists = visibleMarkets.some(
+        const stillExists = marketList.some(
           (market) => market.ticker === prevTicker
         );
 
-        return stillExists ? prevTicker : visibleMarkets[0]?.ticker || '';
+        return stillExists ? prevTicker : marketList[0]?.ticker || '';
+      });
+    } catch (err) {
+      setError(err.message || 'Something went wrong while loading markets.');
+      setMarkets([]);
+      setNextCursor('');
+      setSelectedTicker('');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadAllMarketsForFilters(
+    dateModeValue = appliedDateMode,
+    createdDateValue = appliedCreatedDate,
+    createdMonthValue = appliedCreatedMonth,
+    statusValue = appliedStatus,
+    marketScopeValue = appliedMarketScope
+  ) {
+    try {
+      setLoading(true);
+      setError('');
+
+      const allMarkets = [];
+      let cursorValue = '';
+      let pageCount = 0;
+      const maxPages = 20;
+
+      do {
+        const params = new URLSearchParams();
+        params.set('limit', String(PAGE_SIZE));
+        addMarketScopeParam(params, marketScopeValue);
+
+        const timeRange = getTimeRange(
+          dateModeValue,
+          createdDateValue,
+          createdMonthValue
+        );
+
+        if (timeRange) {
+          params.set('min_created_ts', String(timeRange.minTs));
+          params.set('max_created_ts', String(timeRange.maxTs));
+        } else if (statusValue !== 'all') {
+          params.set('status', statusValue);
+        }
+
+        if (cursorValue) {
+          params.set('cursor', cursorValue);
+        }
+
+        const response = await fetch(`${BASE_URL}?${params.toString()}`);
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        const pageMarkets = Array.isArray(data.markets) ? data.markets : [];
+
+        allMarkets.push(...pageMarkets);
+        cursorValue = data.cursor || '';
+        pageCount += 1;
+      } while (cursorValue && pageCount < maxPages);
+
+      setMarkets(allMarkets);
+      setNextCursor(cursorValue);
+      setLastUpdated(new Date().toLocaleString());
+
+      setSelectedTicker((prevTicker) => {
+        const stillExists = allMarkets.some(
+          (market) => market.ticker === prevTicker
+        );
+
+        return stillExists ? prevTicker : allMarkets[0]?.ticker || '';
       });
     } catch (err) {
       setError(err.message || 'Something went wrong while loading markets.');
@@ -901,8 +977,7 @@ function App() {
     setCurrentCursor('');
     setShowSuggestions(false);
 
-    loadMarkets(
-      '',
+    loadAllMarketsForFilters(
       draftDateMode,
       draftCreatedDate,
       draftCreatedMonth,
