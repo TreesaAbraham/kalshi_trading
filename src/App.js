@@ -21,7 +21,7 @@ const LOW_CERTAINTY_LOWER = 0.45;
 const LOW_CERTAINTY_UPPER = 0.55;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const MAX_SUGGESTIONS = 8;
-const MAX_COMPARISON_MARKETS = 6;
+const MAX_COMPARISON_MARKETS = 10;
 
 const COMPARISON_COLORS = [
   '#10b981',
@@ -459,13 +459,13 @@ function App() {
   const [draftCreatedDate, setDraftCreatedDate] = useState('');
   const [draftCreatedMonth, setDraftCreatedMonth] = useState('');
   const [draftStatus, setDraftStatus] = useState('all');
-  const [draftMarketScope, setDraftMarketScope] = useState('single');
+  const [draftMarketScope, setDraftMarketScope] = useState('all');
 
   const [appliedDateMode, setAppliedDateMode] = useState('all');
   const [appliedCreatedDate, setAppliedCreatedDate] = useState('');
   const [appliedCreatedMonth, setAppliedCreatedMonth] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('all');
-  const [appliedMarketScope, setAppliedMarketScope] = useState('single');
+  const [appliedMarketScope, setAppliedMarketScope] = useState('all');
 
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -991,20 +991,20 @@ function App() {
     setDraftCreatedDate('');
     setDraftCreatedMonth('');
     setDraftStatus('all');
-    setDraftMarketScope('single');
+    setDraftMarketScope('all');
 
     setAppliedDateMode('all');
     setAppliedCreatedDate('');
     setAppliedCreatedMonth('');
     setAppliedStatus('all');
-    setAppliedMarketScope('single');
+    setAppliedMarketScope('all');
 
     setSearchTerm('');
     setCursorHistory([]);
     setCurrentCursor('');
     setShowSuggestions(false);
 
-    loadMarkets('', 'all', '', '', 'all', 'single');
+    loadMarkets('', 'all', '', '', 'all', 'all');
   }
 
   function goToNextPage() {

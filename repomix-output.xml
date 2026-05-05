@@ -10065,68 +10065,74 @@ select {
   box-sizing: border-box;
 }
 
-.dashboard-page {
+body {
+  background: #f8fafc;
+}
+
+.App {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 28%),
-    linear-gradient(180deg, #0f172a 0%, #111827 100%);
-  color: #e5e7eb;
+  background: #f8fafc;
+  color: #111827;
 }
 
-.dashboard-shell {
-  width: min(1280px, calc(100% - 32px));
+.app-shell {
+  width: min(1320px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 32px 0 40px;
+  padding: 28px 0 40px;
 }
 
-.topbar,
-.toolbar,
+.hero-section,
+.controls-panel,
 .summary-card,
 .panel,
 .market-row,
 .empty-state,
-.message-box,
-.error-box,
-.paging-bar {
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.78);
-  border-radius: 20px;
+.status-row,
+.pagination-row {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
 }
 
-.topbar {
+.hero-section {
   padding: 28px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .eyebrow,
 .summary-label,
 .detail-label,
 .ticker {
+  margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   font-size: 0.76rem;
-  color: #93c5fd;
+  font-weight: 700;
+  color: #64748b;
 }
 
-.topbar h1 {
-  margin: 8px 0 12px;
-  font-size: clamp(2rem, 4vw, 3.4rem);
+.hero-section h1 {
+  margin: 8px 0 10px;
+  font-size: clamp(2rem, 4vw, 3.3rem);
   line-height: 1.05;
+  color: #111827;
 }
 
-.subtext {
+.hero-copy {
   margin: 0;
   max-width: 760px;
-  color: #cbd5e1;
+  color: #64748b;
   line-height: 1.65;
 }
 
-.toolbar {
+.controls-panel {
   padding: 18px;
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr auto;
-  gap: 16px;
-  margin-bottom: 20px;
+  grid-template-columns: minmax(260px, 1.5fr) minmax(180px, 0.8fr) minmax(160px, 0.7fr) minmax(170px, 0.7fr) auto;
+  gap: 14px;
+  margin-bottom: 18px;
+  align-items: end;
 }
 
 .control-group {
@@ -10136,19 +10142,91 @@ select {
 }
 
 .control-group label {
-  font-size: 0.92rem;
-  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #374151;
 }
 
 .control-group input,
 .control-group select {
   width: 100%;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(30, 41, 59, 0.8);
-  color: #e5e7eb;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 11px 12px;
   font: inherit;
+  outline: none;
+}
+
+.control-group input:focus,
+.control-group select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.search-group {
+  position: relative;
+}
+
+.autocomplete-menu {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+}
+
+.autocomplete-item {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #111827;
+  text-align: left;
+  padding: 0.7rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.autocomplete-item:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.autocomplete-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.autocomplete-ticker {
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: #111827;
+}
+
+.autocomplete-status {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.autocomplete-title {
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: #475569;
 }
 
 .button-row {
@@ -10160,77 +10238,82 @@ select {
 .primary-button,
 .ghost-button {
   border-radius: 999px;
-  padding: 12px 16px;
+  padding: 11px 16px;
   font: inherit;
+  font-weight: 800;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .primary-button {
   border: none;
-  background: #e5eefc;
-  color: #0f172a;
-  font-weight: 600;
+  background: #111827;
+  color: #ffffff;
+}
+
+.primary-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(17, 24, 39, 0.16);
 }
 
 .ghost-button {
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: transparent;
-  color: #e5e7eb;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
 }
 
-.ghost-button:disabled {
-  opacity: 0.55;
+.ghost-button:hover {
+  background: #f9fafb;
+}
+
+.ghost-button:disabled,
+.primary-button:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .summary-card {
   padding: 18px;
 }
 
-.summary-card strong {
-  display: block;
-  margin-top: 10px;
-  font-size: 1.6rem;
-  line-height: 1.25;
+.summary-card h2 {
+  margin: 10px 0 0;
+  font-size: 1.8rem;
+  color: #111827;
 }
 
-.small-strong {
-  font-size: 1rem !important;
-}
-
-.paging-bar {
-  padding: 14px 18px;
+.status-row {
+  padding: 12px 18px;
+  margin-bottom: 18px;
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: #64748b;
 }
 
-.message-box,
-.error-box {
-  padding: 18px;
-  margin-bottom: 20px;
+.status-row p {
+  margin: 0;
 }
 
-.error-box {
-  color: #fecaca;
-  background: rgba(127, 29, 29, 0.28);
+.status-row strong {
+  color: #111827;
 }
 
-.error-box p {
-  margin-bottom: 0;
-}
-
-.content-grid {
+.dashboard-main {
   display: grid;
-  grid-template-columns: 1.6fr 1fr;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(360px, 0.8fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .panel {
@@ -10246,20 +10329,20 @@ select {
   flex-wrap: wrap;
 }
 
-.panel-header h2,
-.market-row-main h3 {
+.panel-header h2 {
   margin: 0;
+  color: #111827;
 }
 
 .panel-header p {
   margin: 0;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .market-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .market-row {
@@ -10267,27 +10350,69 @@ select {
   text-align: left;
   padding: 16px;
   cursor: pointer;
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.market-row:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
 }
 
 .market-row.selected {
-  border-color: rgba(96, 165, 250, 0.7);
-  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.35) inset;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.market-row-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
 .market-row-main h3 {
-  margin-top: 8px;
-  font-size: 1rem;
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  color: #111827;
+}
+
+.market-question {
+  margin: 6px 0 0;
+  color: #64748b;
   line-height: 1.45;
-  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.market-status-pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .market-row-meta {
-  margin-top: 12px;
+  margin-top: 13px;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  color: #cbd5e1;
-  font-size: 0.92rem;
+  gap: 8px;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.market-row-meta span {
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 5px 9px;
 }
 
 .detail-stack {
@@ -10296,33 +10421,83 @@ select {
   gap: 14px;
 }
 
+.selected-market-heading {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.selected-market-heading h3 {
+  margin: 8px 0 6px;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  color: #111827;
+}
+
+.selected-market-heading p:last-child {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.45;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 
 .detail-block {
   padding: 14px;
   border-radius: 14px;
-  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
 }
 
 .detail-block p {
   margin: 8px 0 0;
   line-height: 1.5;
-  color: #e5e7eb;
+  color: #111827;
+  overflow-wrap: anywhere;
+}
+
+.chart-block {
+  background: #ffffff;
+}
+
+.chart-wrap {
+  width: 100%;
+  height: 300px;
+  min-width: 0;
+  margin-top: 12px;
+  padding: 8px 4px 0;
+  border-radius: 14px;
+  background: #ffffff;
 }
 
 .empty-state {
-  padding: 20px;
-  color: #cbd5e1;
+  padding: 18px;
+  color: #64748b;
 }
 
-@media (max-width: 1050px) {
-  .toolbar,
+.error-state {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.pagination-row {
+  padding: 14px 18px;
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1100px) {
+  .controls-panel,
   .summary-grid,
-  .content-grid {
+  .dashboard-main {
     grid-template-columns: 1fr;
   }
 
@@ -10332,91 +10507,154 @@ select {
 }
 
 @media (max-width: 700px) {
+  .app-shell {
+    width: min(100% - 20px, 1320px);
+    padding-top: 16px;
+  }
+
+  .hero-section,
+  .controls-panel,
+  .summary-card,
+  .panel,
+  .market-row,
+  .status-row,
+  .pagination-row {
+    border-radius: 14px;
+  }
+
   .detail-grid {
     grid-template-columns: 1fr;
   }
 
-  .paging-bar {
+  .pagination-row {
+    flex-direction: column;
+  }
+
+  .market-row-topline {
+    align-items: flex-start;
     flex-direction: column;
   }
 }
-.search-group {
-  position: relative;
-}
 
-.autocomplete-wrap {
-  position: relative;
-}
-
-.autocomplete-dropdown {
-  position: absolute;
-  top: calc(100% + 0.4rem);
-  left: 0;
-  right: 0;
-  z-index: 20;
+.side-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.4rem;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 14px;
-  background: #0f172a;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+  gap: 18px;
 }
 
-.autocomplete-item {
-  width: 100%;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: #e5e7eb;
-  text-align: left;
-  padding: 0.7rem 0.8rem;
+.comparison-panel {
+  overflow: hidden;
+}
+
+.comparison-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.comparison-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.comparison-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 999px;
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
-.autocomplete-item:hover {
-  background: rgba(148, 163, 184, 0.14);
+.comparison-chip:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
   transform: translateY(-1px);
 }
 
-.autocomplete-top {
+.comparison-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.chip-x {
+  color: #64748b;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.market-row-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.2rem;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.autocomplete-ticker {
-  font-weight: 700;
-  font-size: 0.92rem;
-  color: #f8fafc;
-}
-
-.autocomplete-status {
-  font-size: 0.78rem;
-  color: #94a3b8;
+.compare-pill {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 9px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.74rem;
+  font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.autocomplete-title {
-  font-size: 0.88rem;
-  line-height: 1.35;
-  color: #cbd5e1;
-}
-.market-row,
-.market-row * {
-  color: #e5e7eb;
+.compare-pill:hover {
+  background: #dbeafe;
+  border-color: #bfdbfe;
 }
 
-.market-title {
-  color: #f8fafc;
+.compare-pill.selected {
+  border-color: #bbf7d0;
+  background: #ecfdf5;
+  color: #047857;
 }
 
-.market-ticker {
-  color: #cbd5e1;
+.market-row.compared {
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.small-button {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.comparison-chart-wrap {
+  height: 360px;
+}
+
+@media (max-width: 1100px) {
+  .side-stack {
+    width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .market-row-actions {
+    justify-content: flex-start;
+  }
+
+  .comparison-chip {
+    max-width: 100%;
+  }
 }
 </file>
 
@@ -10430,10 +10668,12 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from 'recharts';
 import './App.css';
 
-const BASE_URL = 'https://api.elections.kalshi.com/trade-api/v2/markets';
+const API_ROOT = 'https://api.elections.kalshi.com/trade-api/v2';
+const BASE_URL = `${API_ROOT}/markets`;
 const PAGE_SIZE = 500;
 
 const HIGH_VOLUME_THRESHOLD = 1000;
@@ -10442,6 +10682,16 @@ const LOW_CERTAINTY_LOWER = 0.45;
 const LOW_CERTAINTY_UPPER = 0.55;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const MAX_SUGGESTIONS = 8;
+const MAX_COMPARISON_MARKETS = 6;
+
+const COMPARISON_COLORS = [
+  '#10b981',
+  '#2563eb',
+  '#f97316',
+  '#8b5cf6',
+  '#ef4444',
+  '#14b8a6',
+];
 
 function formatDate(value) {
   if (!value) return 'N/A';
@@ -10454,6 +10704,12 @@ function formatMoney(value) {
   const num = Number(value);
   if (Number.isNaN(num)) return 'N/A';
   return `$${num.toFixed(3)}`;
+}
+
+function formatPercentFromDollar(value) {
+  const num = Number(value);
+  if (Number.isNaN(num)) return 'N/A';
+  return `${Math.round(num * 100)}%`;
 }
 
 function formatNumber(value) {
@@ -10565,6 +10821,64 @@ function matchesKeywordSearch(market, query) {
   return keywords.every((word) => haystack.includes(word));
 }
 
+function looksLikeTickerSearch(query) {
+  const trimmed = query.trim().toUpperCase();
+
+  if (!trimmed) return false;
+
+  return /^[A-Z0-9-]+$/.test(trimmed) && /\d/.test(trimmed);
+}
+
+async function fetchDirectTickerMatches(query) {
+  const ticker = query.trim().toUpperCase();
+
+  if (!looksLikeTickerSearch(ticker)) {
+    return null;
+  }
+
+  const eventUrl = `${API_ROOT}/events/${encodeURIComponent(
+    ticker
+  )}?with_nested_markets=false`;
+
+  try {
+    const eventResponse = await fetch(eventUrl);
+
+    if (eventResponse.ok) {
+      const eventData = await eventResponse.json();
+
+      const eventMarkets =
+        eventData.markets ||
+        eventData.event?.markets ||
+        eventData.event?.nested_markets ||
+        [];
+
+      if (Array.isArray(eventMarkets) && eventMarkets.length > 0) {
+        return eventMarkets;
+      }
+    }
+  } catch (err) {
+    console.warn('Direct event lookup failed:', err);
+  }
+
+  const marketUrl = `${API_ROOT}/markets/${encodeURIComponent(ticker)}`;
+
+  try {
+    const marketResponse = await fetch(marketUrl);
+
+    if (marketResponse.ok) {
+      const marketData = await marketResponse.json();
+
+      if (marketData.market) {
+        return [marketData.market];
+      }
+    }
+  } catch (err) {
+    console.warn('Direct market lookup failed:', err);
+  }
+
+  return null;
+}
+
 function isComboMarket(market) {
   const hasSelectedLegs =
     Array.isArray(market.mve_selected_legs) && market.mve_selected_legs.length > 0;
@@ -10650,28 +10964,49 @@ function getEventContextFromTicker(market) {
   return label;
 }
 
+function cleanOutcomeLabel(value) {
+  if (!value) return '';
+
+  return String(value)
+    .replace(/^yes\s+/i, '')
+    .replace(/^no\s+/i, '')
+    .trim();
+}
+
 function getOutcomeLabel(market) {
-  return (
-    market.subtitle ||
-    market.title ||
+  const candidate =
     market.yes_sub_title ||
+    market.subtitle ||
     market.no_sub_title ||
-    'Untitled outcome'
-  );
+    market.title ||
+    'Untitled outcome';
+
+  return cleanOutcomeLabel(candidate);
+}
+
+function getEventQuestion(market) {
+  const title = market.title?.trim();
+  const outcome = getOutcomeLabel(market).trim();
+
+  if (title && title !== outcome) {
+    return title;
+  }
+
+  return getEventContextFromTicker(market);
 }
 
 function getSuggestionLabel(market) {
-  const context = getEventContextFromTicker(market);
   const outcome = getOutcomeLabel(market);
-  return `${context} · ${outcome}`;
+  const question = getEventQuestion(market);
+  return `${outcome} · ${question}`;
 }
 
+/*
+  Important:
+  The frontend should NOT guess single/combo markets anymore.
+  Kalshi's API handles this through mve_filter in the request.
+*/
 function matchesMarketScope(market, scope) {
-  const combo = isComboMarket(market);
-
-  if (scope === 'combo') return combo;
-  if (scope === 'single') return !combo;
-
   return true;
 }
 
@@ -10692,6 +11027,82 @@ function getCandlestickInterval(startMs, endMs) {
   if (spanMs <= oneDay) return 1;
   if (spanMs <= sevenDays) return 60;
   return 1440;
+}
+
+function getCandleTs(candle) {
+  return (
+    candle.end_period_ts ||
+    candle.start_period_ts ||
+    candle.ts ||
+    candle.timestamp ||
+    null
+  );
+}
+
+function getCandleYesClose(candle) {
+  const raw =
+    candle.price?.close_dollars ??
+    candle.price?.close ??
+    candle.yes_ask?.close_dollars ??
+    candle.yes_ask?.close ??
+    candle.yes_bid?.close_dollars ??
+    candle.yes_bid?.close ??
+    candle.open_interest?.close_dollars ??
+    candle.close_dollars ??
+    candle.close ??
+    null;
+
+  const num = Number(raw);
+
+  if (Number.isNaN(num)) return null;
+
+  if (num > 1) {
+    return Math.max(0, Math.min(100, num));
+  }
+
+  return Math.max(0, Math.min(100, num * 100));
+}
+
+function getBatchCandlestickGroups(data) {
+  if (Array.isArray(data.markets)) return data.markets;
+  if (Array.isArray(data.market_candlesticks)) return data.market_candlesticks;
+  if (Array.isArray(data.candlesticks)) return [{ candlesticks: data.candlesticks }];
+  return [];
+}
+
+function getBatchGroupTicker(group) {
+  return group.ticker || group.market_ticker || group.market?.ticker || '';
+}
+
+function buildComparisonChartData(groups) {
+  const rowsByTs = new Map();
+
+  groups.forEach((group) => {
+    const ticker = getBatchGroupTicker(group);
+    const candlesticks = Array.isArray(group.candlesticks)
+      ? group.candlesticks
+      : [];
+
+    if (!ticker) return;
+
+    candlesticks.forEach((candle) => {
+      const ts = getCandleTs(candle);
+      const yesPct = getCandleYesClose(candle);
+
+      if (!ts || yesPct === null) return;
+
+      if (!rowsByTs.has(ts)) {
+        rowsByTs.set(ts, {
+          ts,
+          dateLabel: formatChartDate(ts),
+        });
+      }
+
+      rowsByTs.get(ts)[ticker] = Number(yesPct.toFixed(2));
+    });
+  });
+
+  return Array.from(rowsByTs.values()).sort((a, b) => a.ts - b.ts);
 }
 
 function App() {
@@ -10723,20 +11134,59 @@ function App() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
 
+  const [comparisonMarkets, setComparisonMarkets] = useState([]);
+  const [comparisonHistoryData, setComparisonHistoryData] = useState([]);
+  const [comparisonHistoryLoading, setComparisonHistoryLoading] = useState(false);
+  const [comparisonHistoryError, setComparisonHistoryError] = useState('');
+
+  function addMarketScopeParam(params, marketScopeValue) {
+    if (marketScopeValue === 'single') {
+      params.set('mve_filter', 'exclude');
+    }
+
+    if (marketScopeValue === 'combo') {
+      params.set('mve_filter', 'only');
+    }
+  }
+
   async function loadMarkets(
     cursorValue = '',
     dateModeValue = appliedDateMode,
     createdDateValue = appliedCreatedDate,
     createdMonthValue = appliedCreatedMonth,
     statusValue = appliedStatus,
-    marketScopeValue = appliedMarketScope
+    marketScopeValue = appliedMarketScope,
+    searchOverride = searchTerm
   ) {
     try {
       setLoading(true);
       setError('');
 
+      const trimmedSearch = searchOverride.trim();
+
+      if (!cursorValue && looksLikeTickerSearch(trimmedSearch)) {
+        const directMatches = await fetchDirectTickerMatches(trimmedSearch);
+
+        if (Array.isArray(directMatches) && directMatches.length > 0) {
+          setMarkets(directMatches);
+          setNextCursor('');
+          setLastUpdated(new Date().toLocaleString());
+
+          setSelectedTicker((prevTicker) => {
+            const stillExists = directMatches.some(
+              (market) => market.ticker === prevTicker
+            );
+
+            return stillExists ? prevTicker : directMatches[0]?.ticker || '';
+          });
+
+          return;
+        }
+      }
+
       const params = new URLSearchParams();
       params.set('limit', String(PAGE_SIZE));
+      addMarketScopeParam(params, marketScopeValue);
 
       const timeRange = getTimeRange(
         dateModeValue,
@@ -10769,15 +11219,84 @@ function App() {
       setLastUpdated(new Date().toLocaleString());
 
       setSelectedTicker((prevTicker) => {
-        const visibleMarkets = marketList.filter((market) =>
-          matchesMarketScope(market, marketScopeValue)
-        );
-
-        const stillExists = visibleMarkets.some(
+        const stillExists = marketList.some(
           (market) => market.ticker === prevTicker
         );
 
-        return stillExists ? prevTicker : visibleMarkets[0]?.ticker || '';
+        return stillExists ? prevTicker : marketList[0]?.ticker || '';
+      });
+    } catch (err) {
+      setError(err.message || 'Something went wrong while loading markets.');
+      setMarkets([]);
+      setNextCursor('');
+      setSelectedTicker('');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadAllMarketsForFilters(
+    dateModeValue = appliedDateMode,
+    createdDateValue = appliedCreatedDate,
+    createdMonthValue = appliedCreatedMonth,
+    statusValue = appliedStatus,
+    marketScopeValue = appliedMarketScope
+  ) {
+    try {
+      setLoading(true);
+      setError('');
+
+      const allMarkets = [];
+      let cursorValue = '';
+      let pageCount = 0;
+      const maxPages = 20;
+
+      do {
+        const params = new URLSearchParams();
+        params.set('limit', String(PAGE_SIZE));
+        addMarketScopeParam(params, marketScopeValue);
+
+        const timeRange = getTimeRange(
+          dateModeValue,
+          createdDateValue,
+          createdMonthValue
+        );
+
+        if (timeRange) {
+          params.set('min_created_ts', String(timeRange.minTs));
+          params.set('max_created_ts', String(timeRange.maxTs));
+        } else if (statusValue !== 'all') {
+          params.set('status', statusValue);
+        }
+
+        if (cursorValue) {
+          params.set('cursor', cursorValue);
+        }
+
+        const response = await fetch(`${BASE_URL}?${params.toString()}`);
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        const pageMarkets = Array.isArray(data.markets) ? data.markets : [];
+
+        allMarkets.push(...pageMarkets);
+        cursorValue = data.cursor || '';
+        pageCount += 1;
+      } while (cursorValue && pageCount < maxPages);
+
+      setMarkets(allMarkets);
+      setNextCursor(cursorValue);
+      setLastUpdated(new Date().toLocaleString());
+
+      setSelectedTicker((prevTicker) => {
+        const stillExists = allMarkets.some(
+          (market) => market.ticker === prevTicker
+        );
+
+        return stillExists ? prevTicker : allMarkets[0]?.ticker || '';
       });
     } catch (err) {
       setError(err.message || 'Something went wrong while loading markets.');
@@ -10795,38 +11314,37 @@ function App() {
       setHistoryError('');
       return;
     }
-  
+
     try {
       setHistoryLoading(true);
       setHistoryError('');
-  
+
       const startMs = new Date(
         market.open_time || market.created_time || Date.now()
       ).getTime();
       const endMs = Date.now();
-  
+
       const startTs = Math.floor(startMs / 1000);
       const endTs = Math.floor(endMs / 1000);
       const periodInterval = getCandlestickInterval(startMs, endMs);
-  
-      const rootUrl = BASE_URL.replace('/markets', '');
+
       let data = null;
-  
+
       if (market.series_ticker) {
         const liveParams = new URLSearchParams({
           start_ts: String(startTs),
           end_ts: String(endTs),
           period_interval: String(periodInterval),
         });
-  
-        const liveUrl = `${rootUrl}/series/${market.series_ticker}/markets/${market.ticker}/candlesticks?${liveParams.toString()}`;
+
+        const liveUrl = `${API_ROOT}/series/${market.series_ticker}/markets/${market.ticker}/candlesticks?${liveParams.toString()}`;
         const liveResponse = await fetch(liveUrl);
-  
+
         if (liveResponse.ok) {
           data = await liveResponse.json();
         }
       }
-  
+
       if (!data) {
         const batchParams = new URLSearchParams({
           market_tickers: market.ticker,
@@ -10834,70 +11352,54 @@ function App() {
           end_ts: String(endTs),
           period_interval: String(periodInterval),
         });
-  
-        const batchUrl = `${rootUrl}/markets/candlesticks?${batchParams.toString()}`;
+
+        const batchUrl = `${API_ROOT}/markets/candlesticks?${batchParams.toString()}`;
         const batchResponse = await fetch(batchUrl);
-  
+
         if (batchResponse.ok) {
           data = await batchResponse.json();
         }
       }
-  
-      if (!data) {
-        const historicalParams = new URLSearchParams({
-          start_ts: String(startTs),
-          end_ts: String(endTs),
-          period_interval: String(periodInterval),
-        });
-  
-        const historicalUrl = `${rootUrl}/historical/markets/${market.ticker}/candlesticks?${historicalParams.toString()}`;
-        const historicalResponse = await fetch(historicalUrl);
-  
-        if (historicalResponse.ok) {
-          data = await historicalResponse.json();
-        }
-      }
-  
+
       if (!data) {
         throw new Error('No candlestick source returned usable data.');
       }
-  
+
       let candlesticks = [];
-  
+
       if (Array.isArray(data.candlesticks)) {
         candlesticks = data.candlesticks;
-      } else if (Array.isArray(data.markets) && data.markets.length > 0) {
+      } else {
+        const groups = getBatchCandlestickGroups(data);
         const batchMarket =
-          data.markets.find(
+          groups.find(
             (item) =>
-              item.ticker === market.ticker || item.market_ticker === market.ticker
-          ) || data.markets[0];
-  
+              getBatchGroupTicker(item) === market.ticker ||
+              item.market_ticker === market.ticker
+          ) || groups[0];
+
         candlesticks = Array.isArray(batchMarket?.candlesticks)
           ? batchMarket.candlesticks
           : [];
       }
-  
-      const chartPoints = candlesticks.map((candle) => {
-        const yesClose =
-          Number(
-            candle.price?.close_dollars ??
-              candle.price?.close ??
-              candle.yes_ask?.close_dollars ??
-              candle.yes_ask?.close
-          ) || 0;
-  
-        const clampedYes = Math.max(0, Math.min(1, yesClose));
-        const noClose = 1 - clampedYes;
-  
-        return {
-          ts: candle.end_period_ts,
-          dateLabel: formatChartDate(candle.end_period_ts),
-          yesPct: Number((clampedYes * 100).toFixed(2)),
-          noPct: Number((noClose * 100).toFixed(2)),
-        };
-      });
-  
+
+      const chartPoints = candlesticks
+        .map((candle) => {
+          const ts = getCandleTs(candle);
+          const yesPct = getCandleYesClose(candle);
+
+          if (!ts || yesPct === null) return null;
+
+          return {
+            ts,
+            dateLabel: formatChartDate(ts),
+            yesPct: Number(yesPct.toFixed(2)),
+            noPct: Number((100 - yesPct).toFixed(2)),
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.ts - b.ts);
+
       setHistoryData(chartPoints);
     } catch (err) {
       setHistoryData([]);
@@ -10907,10 +11409,133 @@ function App() {
     }
   }
 
+  async function loadComparisonHistory(marketsToCompare) {
+    if (!Array.isArray(marketsToCompare) || marketsToCompare.length === 0) {
+      setComparisonHistoryData([]);
+      setComparisonHistoryError('');
+      return;
+    }
+
+    try {
+      setComparisonHistoryLoading(true);
+      setComparisonHistoryError('');
+
+      const validMarkets = marketsToCompare.filter((market) => market?.ticker);
+
+      if (validMarkets.length === 0) {
+        setComparisonHistoryData([]);
+        return;
+      }
+
+      const earliestStartMs = Math.min(
+        ...validMarkets.map((market) => {
+          const parsed = new Date(
+            market.open_time || market.created_time || Date.now()
+          ).getTime();
+
+          return Number.isNaN(parsed) ? Date.now() : parsed;
+        })
+      );
+
+      const endMs = Date.now();
+      const startTs = Math.floor(earliestStartMs / 1000);
+      const endTs = Math.floor(endMs / 1000);
+
+      const params = new URLSearchParams({
+        market_tickers: validMarkets.map((market) => market.ticker).join(','),
+        start_ts: String(startTs),
+        end_ts: String(endTs),
+        period_interval: '1440',
+      });
+
+      const response = await fetch(
+        `${API_ROOT}/markets/candlesticks?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Comparison history request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const groups = getBatchCandlestickGroups(data);
+      const chartRows = buildComparisonChartData(groups);
+
+      setComparisonHistoryData(chartRows);
+    } catch (err) {
+      setComparisonHistoryData([]);
+      setComparisonHistoryError(
+        err.message || 'Failed to load comparison history.'
+      );
+    } finally {
+      setComparisonHistoryLoading(false);
+    }
+  }
+
+  function toggleComparisonMarket(market) {
+    setComparisonMarkets((prev) => {
+      const alreadySelected = prev.some((item) => item.ticker === market.ticker);
+
+      if (alreadySelected) {
+        return prev.filter((item) => item.ticker !== market.ticker);
+      }
+
+      return [...prev, market].slice(0, MAX_COMPARISON_MARKETS);
+    });
+  }
+
+  function removeComparisonMarket(ticker) {
+    setComparisonMarkets((prev) =>
+      prev.filter((market) => market.ticker !== ticker)
+    );
+  }
+
+  function clearComparisonMarkets() {
+    setComparisonMarkets([]);
+    setComparisonHistoryData([]);
+    setComparisonHistoryError('');
+  }
+
   useEffect(() => {
     loadMarkets('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const trimmedSearch = searchTerm.trim();
+
+    if (!looksLikeTickerSearch(trimmedSearch)) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCursorHistory([]);
+      setCurrentCursor('');
+
+      loadMarkets(
+        '',
+        appliedDateMode,
+        appliedCreatedDate,
+        appliedCreatedMonth,
+        appliedStatus,
+        appliedMarketScope,
+        trimmedSearch
+      );
+    }, 350);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    searchTerm,
+    appliedDateMode,
+    appliedCreatedDate,
+    appliedCreatedMonth,
+    appliedStatus,
+    appliedMarketScope,
+  ]);
+
+  useEffect(() => {
+    loadComparisonHistory(comparisonMarkets);
+  }, [comparisonMarkets]);
 
   const filteredMarkets = useMemo(() => {
     return markets.filter((market) => {
@@ -10954,6 +11579,16 @@ function App() {
     return filteredMarkets.find((market) => market.ticker === selectedTicker) || null;
   }, [filteredMarkets, selectedTicker]);
 
+  const comparisonLineNames = useMemo(() => {
+    const names = {};
+
+    comparisonMarkets.forEach((market) => {
+      names[market.ticker] = getOutcomeLabel(market);
+    });
+
+    return names;
+  }, [comparisonMarkets]);
+
   useEffect(() => {
     if (!selectedMarket) {
       setHistoryData([]);
@@ -10991,6 +11626,7 @@ function App() {
   }).length;
 
   const hasEnoughHistory = historyData.length >= 2;
+  const hasEnoughComparisonHistory = comparisonHistoryData.length >= 2;
 
   function applyFilters() {
     setAppliedDateMode(draftDateMode);
@@ -11002,8 +11638,7 @@ function App() {
     setCurrentCursor('');
     setShowSuggestions(false);
 
-    loadMarkets(
-      '',
+    loadAllMarketsForFilters(
       draftDateMode,
       draftCreatedDate,
       draftCreatedMonth,
@@ -11063,59 +11698,57 @@ function App() {
         <header className="hero-section">
           <div>
             <p className="eyebrow">Kalshi Market Dashboard</p>
-            <h1>Explore active prediction markets</h1>
+            <h1>Explore prediction markets</h1>
             <p className="hero-copy">
-              Filter by created date, keyword, status, and now market type so combo
-              markets stop disappearing into the void.
+              A lighter market monitor that shows the outcome first, then the
+              event question underneath. Revolutionary stuff: readable labels.
             </p>
           </div>
         </header>
 
         <section className="controls-panel">
-          <div className="control-row">
-            <div className="control-group search-group">
-              <label htmlFor="marketSearch">Search markets</label>
-              <input
-                id="marketSearch"
-                type="text"
-                placeholder="Search by title, ticker, or subtitle"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => {
-                  setTimeout(() => setShowSuggestions(false), 150);
-                }}
-              />
+          <div className="control-group search-group">
+            <label htmlFor="marketSearch">Search markets</label>
+            <input
+              id="marketSearch"
+              type="text"
+              placeholder="Search by title, ticker, candidate, or subtitle"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => {
+                setTimeout(() => setShowSuggestions(false), 150);
+              }}
+            />
 
-              {showSuggestions && autocompleteSuggestions.length > 0 && (
-                <div className="autocomplete-menu">
-                  {autocompleteSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.ticker}
-                      type="button"
-                      className="autocomplete-item"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => handleSuggestionSelect(suggestion)}
-                    >
-                      <div className="autocomplete-top">
-                        <span className="autocomplete-ticker">
-                          {suggestion.ticker}
-                        </span>
-                        <span className="autocomplete-status">
-                          {suggestion.status}
-                        </span>
-                      </div>
-                      <div className="autocomplete-title">
-                        {suggestion.title}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {showSuggestions && autocompleteSuggestions.length > 0 && (
+              <div className="autocomplete-menu">
+                {autocompleteSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.ticker}
+                    type="button"
+                    className="autocomplete-item"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleSuggestionSelect(suggestion)}
+                  >
+                    <div className="autocomplete-top">
+                      <span className="autocomplete-ticker">
+                        {suggestion.ticker}
+                      </span>
+                      <span className="autocomplete-status">
+                        {suggestion.status}
+                      </span>
+                    </div>
+                    <div className="autocomplete-title">
+                      {suggestion.title}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="control-group">
@@ -11226,13 +11859,16 @@ function App() {
               <section className="panel list-panel">
                 <div className="panel-header">
                   <h2>Markets</h2>
-                  <p>Context first, contract outcome second</p>
+                  <p>Outcome first, event question second</p>
                 </div>
 
                 <div className="market-list">
                   {filteredMarkets.map((market) => {
                     const isSelected = market.ticker === selectedMarket?.ticker;
-                    const eventContext = getEventContextFromTicker(market);
+                    const isCompared = comparisonMarkets.some(
+                      (item) => item.ticker === market.ticker
+                    );
+                    const eventQuestion = getEventQuestion(market);
                     const outcomeLabel = getOutcomeLabel(market);
                     const marketTypeLabel = isComboMarket(market) ? 'Combo' : 'Single';
 
@@ -11240,20 +11876,50 @@ function App() {
                       <button
                         key={market.ticker}
                         type="button"
-                        className={`market-row ${isSelected ? 'selected' : ''}`}
+                        className={`market-row ${isSelected ? 'selected' : ''} ${
+                          isCompared ? 'compared' : ''
+                        }`}
                         onClick={() => setSelectedTicker(market.ticker)}
                       >
                         <div className="market-row-main">
-                          <p className="ticker">{eventContext}</p>
+                          <div className="market-row-topline">
+                            <p className="ticker">{market.event_ticker || market.ticker}</p>
+                            <div className="market-row-actions">
+                              <span className="market-status-pill">
+                                {market.status || 'N/A'}
+                              </span>
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                className={`compare-pill ${
+                                  isCompared ? 'selected' : ''
+                                }`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  toggleComparisonMarket(market);
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    toggleComparisonMarket(market);
+                                  }
+                                }}
+                              >
+                                {isCompared ? 'Selected' : 'Compare'}
+                              </span>
+                            </div>
+                          </div>
+
                           <h3>{outcomeLabel}</h3>
+                          <p className="market-question">{eventQuestion}</p>
                         </div>
 
                         <div className="market-row-meta">
-                          <span>Status: {market.status || 'N/A'}</span>
                           <span>Type: {marketTypeLabel}</span>
                           <span>Created: {formatDate(market.created_time)}</span>
-                          <span>Yes ask: {formatMoney(market.yes_ask_dollars)}</span>
-                          <span>Volume: {formatNumber(market.volume_fp)}</span>
+                          <span>Yes ask: {formatPercentFromDollar(market.yes_ask_dollars)}</span>
+                          <span>Volume: ${formatNumber(market.volume_fp)}</span>
                         </div>
                       </button>
                     );
@@ -11261,129 +11927,269 @@ function App() {
 
                   {filteredMarkets.length === 0 && (
                     <div className="empty-state">
-                      No single markets match the current keyword search.
+                      No markets match the current filters.
                     </div>
                   )}
                 </div>
               </section>
 
-              <aside className="panel detail-panel">
-                <div className="panel-header">
-                  <h2>Selected market</h2>
-                  <p>Detail view</p>
-                </div>
-
-                {selectedMarket ? (
-                  <div className="detail-stack">
-                    <div className="detail-block">
-                      <span className="detail-label">Market context</span>
-                      <p>{getEventContextFromTicker(selectedMarket)}</p>
+              <aside className="side-stack">
+                <section className="panel comparison-panel">
+                  <div className="panel-header">
+                    <div>
+                      <h2>Comparison chart</h2>
+                      <p>YES/chance trend for selected outcomes</p>
                     </div>
 
-                    <div className="detail-block">
-                      <span className="detail-label">Outcome</span>
-                      <p>{getOutcomeLabel(selectedMarket)}</p>
-                    </div>
-
-                    <div className="detail-block">
-                      <span className="detail-label">Ticker</span>
-                      <p>{selectedMarket.ticker}</p>
-                    </div>
-
-                    <div className="detail-block">
-                      <span className="detail-label">Badges</span>
-                      <p>
-                        {isComboMarket(selectedMarket) ? 'Combo market' : 'Single market'}
-                        {!hasEnoughHistory && historyData.length > 0 ? ' · Sparse history' : ''}
-                      </p>
-                    </div>
-
-                    <div className="detail-grid">
-                      <div className="detail-block">
-                        <span className="detail-label">Status</span>
-                        <p>{selectedMarket.status || 'N/A'}</p>
-                      </div>
-
-                      <div className="detail-block">
-                        <span className="detail-label">Created time</span>
-                        <p>{formatDate(selectedMarket.created_time)}</p>
-                      </div>
-
-                      <div className="detail-block">
-                        <span className="detail-label">Close time</span>
-                        <p>{formatDate(selectedMarket.close_time)}</p>
-                      </div>
-
-                      <div className="detail-block">
-                        <span className="detail-label">Last price</span>
-                        <p>{formatMoney(selectedMarket.last_price_dollars)}</p>
-                      </div>
-
-                      <div className="detail-block">
-                        <span className="detail-label">Yes ask</span>
-                        <p>{formatMoney(selectedMarket.yes_ask_dollars)}</p>
-                      </div>
-
-                      <div className="detail-block">
-                        <span className="detail-label">No ask</span>
-                        <p>{formatMoney(selectedMarket.no_ask_dollars)}</p>
-                      </div>
-
-                      <div className="detail-block">
-                        <span className="detail-label">Volume</span>
-                        <p>{formatNumber(selectedMarket.volume_fp)}</p>
-                      </div>
-
-                      <div className="detail-block">
-                        <span className="detail-label">Liquidity</span>
-                        <p>{formatMoney(selectedMarket.liquidity_dollars)}</p>
-                      </div>
-                    </div>
-
-                    <div className="detail-block">
-                      <span className="detail-label">Price history</span>
-
-                      {historyLoading ? (
-                        <p>Loading chart...</p>
-                      ) : historyError ? (
-                        <p>{historyError}</p>
-                      ) : historyData.length === 0 ? (
-                        <p>No historical price data available.</p>
-                      ) : !hasEnoughHistory ? (
-                        <p>Only one historical data point is available for this market.</p>
-                      ) : (
-                        <div style={{ width: '100%', height: 300, minWidth: 0 }}>
-                          <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={historyData}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="dateLabel" />
-                              <YAxis domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                              <Tooltip formatter={(value) => `${value}%`} />
-                              <Line
-                                type="monotone"
-                                dataKey="yesPct"
-                                name="Yes"
-                                stroke="#10b981"
-                                dot={false}
-                                strokeWidth={2}
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey="noPct"
-                                name="No"
-                                stroke="#2563eb"
-                                dot={false}
-                                strokeWidth={2}
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      )}
-                    </div>
+                    {comparisonMarkets.length > 0 && (
+                      <button
+                        type="button"
+                        className="ghost-button small-button"
+                        onClick={clearComparisonMarkets}
+                      >
+                        Clear compare
+                      </button>
+                    )}
                   </div>
-                ) : (
-                  <div className="empty-state">No market selected.</div>
-                )}
+
+                  {comparisonMarkets.length === 0 ? (
+                    <div className="empty-state">
+                      Select up to {MAX_COMPARISON_MARKETS} markets using the Compare
+                      button on each card.
+                    </div>
+                  ) : (
+                    <div className="comparison-stack">
+                      <div className="comparison-chip-row">
+                        {comparisonMarkets.map((market, index) => (
+                          <button
+                            key={market.ticker}
+                            type="button"
+                            className="comparison-chip"
+                            onClick={() => removeComparisonMarket(market.ticker)}
+                          >
+                            <span
+                              className="comparison-dot"
+                              style={{
+                                backgroundColor:
+                                  COMPARISON_COLORS[index % COMPARISON_COLORS.length],
+                              }}
+                            />
+                            {getOutcomeLabel(market)}
+                            <span className="chip-x">×</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="detail-block chart-block">
+                        {comparisonHistoryLoading ? (
+                          <p>Loading comparison chart...</p>
+                        ) : comparisonHistoryError ? (
+                          <p>{comparisonHistoryError}</p>
+                        ) : comparisonHistoryData.length === 0 ? (
+                          <p>No comparison history data available yet.</p>
+                        ) : !hasEnoughComparisonHistory ? (
+                          <p>
+                            Only one historical data point is available for this
+                            comparison.
+                          </p>
+                        ) : (
+                          <div className="chart-wrap comparison-chart-wrap">
+                            <ResponsiveContainer width="100%" height={360}>
+                              <LineChart data={comparisonHistoryData}>
+                                <CartesianGrid
+                                  stroke="#e5e7eb"
+                                  strokeDasharray="3 3"
+                                  vertical={false}
+                                />
+                                <XAxis
+                                  dataKey="dateLabel"
+                                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                                  axisLine={{ stroke: '#e5e7eb' }}
+                                  tickLine={false}
+                                />
+                                <YAxis
+                                  domain={[0, 100]}
+                                  tickFormatter={(value) => `${value}%`}
+                                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                                  axisLine={{ stroke: '#e5e7eb' }}
+                                  tickLine={false}
+                                />
+                                <Tooltip
+                                  formatter={(value, name) => [
+                                    `${value}%`,
+                                    comparisonLineNames[name] || name,
+                                  ]}
+                                  contentStyle={{
+                                    background: '#ffffff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '12px',
+                                    color: '#111827',
+                                  }}
+                                />
+                                <Legend
+                                  formatter={(value) =>
+                                    comparisonLineNames[value] || value
+                                  }
+                                />
+                                {comparisonMarkets.map((market, index) => (
+                                  <Line
+                                    key={market.ticker}
+                                    type="monotone"
+                                    dataKey={market.ticker}
+                                    name={getOutcomeLabel(market)}
+                                    stroke={
+                                      COMPARISON_COLORS[
+                                        index % COMPARISON_COLORS.length
+                                      ]
+                                    }
+                                    dot={false}
+                                    strokeWidth={2.5}
+                                    connectNulls
+                                  />
+                                ))}
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                <section className="panel detail-panel">
+                  <div className="panel-header">
+                    <h2>Selected market</h2>
+                    <p>Detail view</p>
+                  </div>
+
+                  {selectedMarket ? (
+                    <div className="detail-stack">
+                      <div className="selected-market-heading">
+                        <p className="ticker">{selectedMarket.ticker}</p>
+                        <h3>{getOutcomeLabel(selectedMarket)}</h3>
+                        <p>{getEventQuestion(selectedMarket)}</p>
+                      </div>
+
+                      <div className="detail-block">
+                        <span className="detail-label">Badges</span>
+                        <p>
+                          {isComboMarket(selectedMarket) ? 'Combo market' : 'Single market'}
+                          {!hasEnoughHistory && historyData.length > 0
+                            ? ' · Sparse history'
+                            : ''}
+                        </p>
+                      </div>
+
+                      <div className="detail-grid">
+                        <div className="detail-block">
+                          <span className="detail-label">Status</span>
+                          <p>{selectedMarket.status || 'N/A'}</p>
+                        </div>
+
+                        <div className="detail-block">
+                          <span className="detail-label">Created time</span>
+                          <p>{formatDate(selectedMarket.created_time)}</p>
+                        </div>
+
+                        <div className="detail-block">
+                          <span className="detail-label">Close time</span>
+                          <p>{formatDate(selectedMarket.close_time)}</p>
+                        </div>
+
+                        <div className="detail-block">
+                          <span className="detail-label">Last price</span>
+                          <p>{formatMoney(selectedMarket.last_price_dollars)}</p>
+                        </div>
+
+                        <div className="detail-block">
+                          <span className="detail-label">Yes ask</span>
+                          <p>{formatPercentFromDollar(selectedMarket.yes_ask_dollars)}</p>
+                        </div>
+
+                        <div className="detail-block">
+                          <span className="detail-label">No ask</span>
+                          <p>{formatPercentFromDollar(selectedMarket.no_ask_dollars)}</p>
+                        </div>
+
+                        <div className="detail-block">
+                          <span className="detail-label">Volume</span>
+                          <p>${formatNumber(selectedMarket.volume_fp)}</p>
+                        </div>
+
+                        <div className="detail-block">
+                          <span className="detail-label">Liquidity</span>
+                          <p>{formatMoney(selectedMarket.liquidity_dollars)}</p>
+                        </div>
+                      </div>
+
+                      <div className="detail-block chart-block">
+                        <span className="detail-label">Selected market price history</span>
+
+                        {historyLoading ? (
+                          <p>Loading chart...</p>
+                        ) : historyError ? (
+                          <p>{historyError}</p>
+                        ) : historyData.length === 0 ? (
+                          <p>No historical price data available.</p>
+                        ) : !hasEnoughHistory ? (
+                          <p>Only one historical data point is available for this market.</p>
+                        ) : (
+                          <div className="chart-wrap">
+                            <ResponsiveContainer width="100%" height={300}>
+                              <LineChart data={historyData}>
+                                <CartesianGrid
+                                  stroke="#e5e7eb"
+                                  strokeDasharray="3 3"
+                                  vertical={false}
+                                />
+                                <XAxis
+                                  dataKey="dateLabel"
+                                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                                  axisLine={{ stroke: '#e5e7eb' }}
+                                  tickLine={false}
+                                />
+                                <YAxis
+                                  domain={[0, 100]}
+                                  tickFormatter={(value) => `${value}%`}
+                                  tick={{ fill: '#6b7280', fontSize: 12 }}
+                                  axisLine={{ stroke: '#e5e7eb' }}
+                                  tickLine={false}
+                                />
+                                <Tooltip
+                                  formatter={(value) => `${value}%`}
+                                  contentStyle={{
+                                    background: '#ffffff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '12px',
+                                    color: '#111827',
+                                  }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="yesPct"
+                                  name="Yes"
+                                  stroke="#10b981"
+                                  dot={false}
+                                  strokeWidth={2.5}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey="noPct"
+                                  name="No"
+                                  stroke="#2563eb"
+                                  dot={false}
+                                  strokeWidth={2.5}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="empty-state">No market selected.</div>
+                  )}
+                </section>
               </aside>
             </main>
 
