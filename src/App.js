@@ -21,7 +21,7 @@ const LOW_CERTAINTY_LOWER = 0.45;
 const LOW_CERTAINTY_UPPER = 0.55;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const MAX_SUGGESTIONS = 8;
-const MAX_COMPARISON_MARKETS = 10;
+const MAX_COMPARISON_MARKETS = 6;
 
 const COMPARISON_COLORS = [
   '#10b981',
@@ -340,11 +340,6 @@ function getSuggestionLabel(market) {
   return `${outcome} · ${question}`;
 }
 
-/*
-  Important:
-  The frontend should NOT guess single/combo markets anymore.
-  Kalshi's API handles this through mve_filter in the request.
-*/
 function matchesMarketScope(market, scope) {
   return true;
 }
@@ -442,6 +437,31 @@ function buildComparisonChartData(groups) {
   });
 
   return Array.from(rowsByTs.values()).sort((a, b) => a.ts - b.ts);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url, maxRetries = 5) {
+  let attempt = 0;
+
+  while (true) {
+    const response = await fetch(url);
+
+    if (response.ok) {
+      return response;
+    }
+
+    if (response.status === 429 && attempt < maxRetries) {
+      const waitMs = Math.min(1000 * 2 ** attempt, 15000);
+      await sleep(waitMs);
+      attempt += 1;
+      continue;
+    }
+
+    throw new Error(`Request failed with status ${response.status}`);
+  }
 }
 
 function App() {
@@ -544,11 +564,7 @@ function App() {
         params.set('cursor', cursorValue);
       }
 
-      const response = await fetch(`${BASE_URL}?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
+      const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`);
 
       const data = await response.json();
       const marketList = Array.isArray(data.markets) ? data.markets : [];
@@ -612,11 +628,7 @@ function App() {
           params.set('cursor', cursorValue);
         }
 
-        const response = await fetch(`${BASE_URL}?${params.toString()}`);
-
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
+        const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`);
 
         const data = await response.json();
         const pageMarkets = Array.isArray(data.markets) ? data.markets : [];
