@@ -10658,6 +10658,170 @@ body {
 }
 </file>
 
+<file path="README.md">
+# Getting Started with Create React App
+
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+## Available Scripts
+
+In the project directory, you can run:
+
+### `npm start`
+
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
+
+### `npm test`
+
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+
+### `npm run build`
+
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
+
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+
+### `npm run eject`
+
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+
+## Learn More
+
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+
+To learn React, check out the [React documentation](https://reactjs.org/).
+
+### Code Splitting
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+
+### Analyzing the Bundle Size
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+In practice, consistency is about being adaptable. Don't have much time? Scale it down. Don't have much energy? Do the easy version. Find different ways to show up depending on the circumstances. Let your habits change shape to meet the demands of the day.
+
+Adaptability is the way of consistency.”
+
+James Clear
+
+Questions for next meeting:
+Am I building this with python, javascript
+Bot will be in python, monitoring in javascript
+Before we build bot we need to build react page to understand data
+What is sdk: software development kit
+Quickstart, 
+Unauthenticated at first
+Make the repo
+Make repo
+And take notes
+	
+
+    /Users/treesaabraham/Documents/kalshi_trading
+ 
+ Questions for tmr: 
+ 1. Are we being selective of which markets we'll be looking at?
+    There are several:
+    Politics
+    Sports
+    Culture
+    Crypto
+    Climate
+    Economics
+    Mentions
+     Companies
+
+Looking at all of them
+https://docs.kalshi.com/getting_started/quick_start_create_order
+talk to lorenzo about making the account
+
+I know that there are older markets, so what's the cut off point for year the market was made
+cuttoff will do 03/172025
+
+
+
+Remember: There are many markets within a series. Use pagination page to get through all of them: 
+
+ok, so just connect straight to kalshi market through api and then display it on the react page?
+make sure to check with lorenzo what front end and back end for react page should look like
+
+-not right now, work on that later
+
+Get api keys 
+make an account officially unath, quick start
+
+prediction market are whimsical
+add api keys in environemtn commit environment gitignore .env files
+
+
+
+
+
+
+when you have an api doesn't send a file gives info instead
+scripts not as scripts but as an interface
+
+
+
+
+build front end of react app, so that it's a dashboard where I can look at it like a dashboard
+Product for me, it's a montinoring system
+
+
+
+
+1. Make the frontend stop being a starter app
+2. Build the first useful interface, not the perfect one
+3. Prove direct frontend fetching works
+
+
+remomber to tell lorenzo about dream where he messaged you to scedule a meeting for him. and he was sounding really threatening. and it scared me so much I actually worked. 
+
+add an autocomplete for ticker/title
+line graph of price chart history of whole event (movement of price at timeline)
+![alt text](image.png)
+google trends
+why you want autocomplete search
+active and least active markets
+
+
+arc institute:
+make an account
+get venmo 50 dollars
+</file>
+
 <file path="src/App.js">
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -11001,11 +11165,6 @@ function getSuggestionLabel(market) {
   return `${outcome} · ${question}`;
 }
 
-/*
-  Important:
-  The frontend should NOT guess single/combo markets anymore.
-  Kalshi's API handles this through mve_filter in the request.
-*/
 function matchesMarketScope(market, scope) {
   return true;
 }
@@ -11105,6 +11264,31 @@ function buildComparisonChartData(groups) {
   return Array.from(rowsByTs.values()).sort((a, b) => a.ts - b.ts);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url, maxRetries = 5) {
+  let attempt = 0;
+
+  while (true) {
+    const response = await fetch(url);
+
+    if (response.ok) {
+      return response;
+    }
+
+    if (response.status === 429 && attempt < maxRetries) {
+      const waitMs = Math.min(1000 * 2 ** attempt, 15000);
+      await sleep(waitMs);
+      attempt += 1;
+      continue;
+    }
+
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+}
+
 function App() {
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -11120,13 +11304,13 @@ function App() {
   const [draftCreatedDate, setDraftCreatedDate] = useState('');
   const [draftCreatedMonth, setDraftCreatedMonth] = useState('');
   const [draftStatus, setDraftStatus] = useState('all');
-  const [draftMarketScope, setDraftMarketScope] = useState('single');
+  const [draftMarketScope, setDraftMarketScope] = useState('all');
 
   const [appliedDateMode, setAppliedDateMode] = useState('all');
   const [appliedCreatedDate, setAppliedCreatedDate] = useState('');
   const [appliedCreatedMonth, setAppliedCreatedMonth] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('all');
-  const [appliedMarketScope, setAppliedMarketScope] = useState('single');
+  const [appliedMarketScope, setAppliedMarketScope] = useState('all');
 
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -11205,11 +11389,7 @@ function App() {
         params.set('cursor', cursorValue);
       }
 
-      const response = await fetch(`${BASE_URL}?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
+      const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`);
 
       const data = await response.json();
       const marketList = Array.isArray(data.markets) ? data.markets : [];
@@ -11273,11 +11453,7 @@ function App() {
           params.set('cursor', cursorValue);
         }
 
-        const response = await fetch(`${BASE_URL}?${params.toString()}`);
-
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
+        const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`);
 
         const data = await response.json();
         const pageMarkets = Array.isArray(data.markets) ? data.markets : [];
@@ -11652,20 +11828,20 @@ function App() {
     setDraftCreatedDate('');
     setDraftCreatedMonth('');
     setDraftStatus('all');
-    setDraftMarketScope('single');
+    setDraftMarketScope('all');
 
     setAppliedDateMode('all');
     setAppliedCreatedDate('');
     setAppliedCreatedMonth('');
     setAppliedStatus('all');
-    setAppliedMarketScope('single');
+    setAppliedMarketScope('all');
 
     setSearchTerm('');
     setCursorHistory([]);
     setCurrentCursor('');
     setShowSuggestions(false);
 
-    loadMarkets('', 'all', '', '', 'all', 'single');
+    loadMarkets('', 'all', '', '', 'all', 'all');
   }
 
   function goToNextPage() {
@@ -12220,165 +12396,6 @@ function App() {
 }
 
 export default App;
-</file>
-
-<file path="README.md">
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-
-
-In practice, consistency is about being adaptable. Don't have much time? Scale it down. Don't have much energy? Do the easy version. Find different ways to show up depending on the circumstances. Let your habits change shape to meet the demands of the day.
-
-Adaptability is the way of consistency.”
-
-James Clear
-
-Questions for next meeting:
-Am I building this with python, javascript
-Bot will be in python, monitoring in javascript
-Before we build bot we need to build react page to understand data
-What is sdk: software development kit
-Quickstart, 
-Unauthenticated at first
-Make the repo
-Make repo
-And take notes
-	
-
-    /Users/treesaabraham/Documents/kalshi_trading
- 
- Questions for tmr: 
- 1. Are we being selective of which markets we'll be looking at?
-    There are several:
-    Politics
-    Sports
-    Culture
-    Crypto
-    Climate
-    Economics
-    Mentions
-     Companies
-
-Looking at all of them
-https://docs.kalshi.com/getting_started/quick_start_create_order
-talk to lorenzo about making the account
-
-I know that there are older markets, so what's the cut off point for year the market was made
-cuttoff will do 03/172025
-
-
-
-Remember: There are many markets within a series. Use pagination page to get through all of them: 
-
-ok, so just connect straight to kalshi market through api and then display it on the react page?
-make sure to check with lorenzo what front end and back end for react page should look like
-
--not right now, work on that later
-
-Get api keys 
-make an account officially unath, quick start
-
-prediction market are whimsical
-add api keys in environemtn commit environment gitignore .env files
-
-
-
-
-
-
-when you have an api doesn't send a file gives info instead
-scripts not as scripts but as an interface
-
-
-
-
-build front end of react app, so that it's a dashboard where I can look at it like a dashboard
-Product for me, it's a montinoring system
-
-
-
-
-1. Make the frontend stop being a starter app
-2. Build the first useful interface, not the perfect one
-3. Prove direct frontend fetching works
-
-
-remomber to tell lorenzo about dream where he messaged you to scedule a meeting for him. and he was sounding really threatening. and it scared me so much I actually worked. 
-
-add an autocomplete for ticker/title
-line graph of price chart history of whole event (movement of price at timeline)
-![alt text](image.png)
-google trends
-why you want autocomplete search
-active and least active markets
 </file>
 
 </files>

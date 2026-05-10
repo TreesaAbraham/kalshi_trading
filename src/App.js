@@ -20,6 +20,14 @@ const HIGH_CERTAINTY_THRESHOLD = 0.9;
 const LOW_CERTAINTY_LOWER = 0.45;
 const LOW_CERTAINTY_UPPER = 0.55;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+const CLOSING_SOON_DAYS = {
+  all: null,
+  oneDay: 1,
+  twoDays: 2,
+  oneWeek: 7,
+};
+
 const MAX_SUGGESTIONS = 8;
 const MAX_COMPARISON_MARKETS = 6;
 
@@ -34,26 +42,35 @@ const COMPARISON_COLORS = [
 
 function formatDate(value) {
   if (!value) return 'N/A';
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return 'N/A';
+
   return date.toLocaleString();
 }
 
 function formatMoney(value) {
   const num = Number(value);
+
   if (Number.isNaN(num)) return 'N/A';
+
   return `$${num.toFixed(3)}`;
 }
 
 function formatPercentFromDollar(value) {
   const num = Number(value);
+
   if (Number.isNaN(num)) return 'N/A';
+
   return `${Math.round(num * 100)}%`;
 }
 
 function formatNumber(value) {
   const num = Number(value);
+
   if (Number.isNaN(num)) return 'N/A';
+
   return num.toLocaleString();
 }
 
@@ -133,6 +150,46 @@ function getTimeRange(dateMode, createdDate, createdMonth) {
   return null;
 }
 
+function getClosingSoonRange(closingSoonValue) {
+  const days = CLOSING_SOON_DAYS[closingSoonValue];
+
+  if (!days) return null;
+
+  const now = Date.now();
+  const end = now + days * TWENTY_FOUR_HOURS_MS;
+
+  return {
+    minTs: Math.floor(now / 1000),
+    maxTs: Math.floor(end / 1000),
+  };
+}
+
+function matchesClosingSoon(market, closingSoonValue) {
+  const days = CLOSING_SOON_DAYS[closingSoonValue];
+
+  if (!days) return true;
+
+  const closeTime = new Date(market.close_time).getTime();
+
+  if (Number.isNaN(closeTime)) return false;
+
+  const now = Date.now();
+  const latestCloseTime = now + days * TWENTY_FOUR_HOURS_MS;
+
+  return closeTime >= now && closeTime <= latestCloseTime;
+}
+
+function sortByCloseTime(a, b) {
+  const aClose = new Date(a.close_time).getTime();
+  const bClose = new Date(b.close_time).getTime();
+
+  if (Number.isNaN(aClose) && Number.isNaN(bClose)) return 0;
+  if (Number.isNaN(aClose)) return 1;
+  if (Number.isNaN(bClose)) return -1;
+
+  return aClose - bClose;
+}
+
 function buildSearchBlob(market) {
   return [
     market.title,
@@ -152,6 +209,7 @@ function buildSearchBlob(market) {
 
 function matchesKeywordSearch(market, query) {
   const trimmed = query.trim().toLowerCase();
+
   if (!trimmed) return true;
 
   const keywords = trimmed.split(/\s+/).filter(Boolean);
@@ -220,7 +278,8 @@ async function fetchDirectTickerMatches(query) {
 
 function isComboMarket(market) {
   const hasSelectedLegs =
-    Array.isArray(market.mve_selected_legs) && market.mve_selected_legs.length > 0;
+    Array.isArray(market.mve_selected_legs) &&
+    market.mve_selected_legs.length > 0;
 
   const hasCollectionTicker =
     typeof market.mve_collection_ticker === 'string' &&
@@ -231,9 +290,11 @@ function isComboMarket(market) {
 
 function parseTickerDate(token) {
   const match = token.match(/^(\d{2})([A-Z]{3})(\d{2})$/);
+
   if (!match) return '';
 
   const [, yy, mon, dd] = match;
+
   const monthMap = {
     JAN: 'Jan',
     FEB: 'Feb',
@@ -250,6 +311,7 @@ function parseTickerDate(token) {
   };
 
   const month = monthMap[mon];
+
   if (!month) return '';
 
   return `${month} ${Number(dd)}, 20${yy}`;
@@ -275,6 +337,7 @@ function humanizeTickerPrefix(prefix) {
   ];
 
   const match = known.find((item) => prefix.startsWith(item.key));
+
   if (match) return match.label;
 
   return prefix
@@ -286,9 +349,11 @@ function humanizeTickerPrefix(prefix) {
 
 function getEventContextFromTicker(market) {
   const raw = market.event_ticker || market.ticker || '';
+
   if (!raw) return 'Single market';
 
   const parts = raw.split('-');
+
   if (parts.length === 0) return raw;
 
   const prefix = parts[0];
@@ -337,16 +402,26 @@ function getEventQuestion(market) {
 function getSuggestionLabel(market) {
   const outcome = getOutcomeLabel(market);
   const question = getEventQuestion(market);
+
   return `${outcome} · ${question}`;
 }
 
 function matchesMarketScope(market, scope) {
+  if (scope === 'all') return true;
+
+  const combo = isComboMarket(market);
+
+  if (scope === 'combo') return combo;
+  if (scope === 'single') return !combo;
+
   return true;
 }
 
 function formatChartDate(tsSeconds) {
   const date = new Date(tsSeconds * 1000);
+
   if (Number.isNaN(date.getTime())) return '';
+
   return date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -360,6 +435,7 @@ function getCandlestickInterval(startMs, endMs) {
 
   if (spanMs <= oneDay) return 1;
   if (spanMs <= sevenDays) return 60;
+
   return 1440;
 }
 
@@ -400,7 +476,10 @@ function getCandleYesClose(candle) {
 function getBatchCandlestickGroups(data) {
   if (Array.isArray(data.markets)) return data.markets;
   if (Array.isArray(data.market_candlesticks)) return data.market_candlesticks;
-  if (Array.isArray(data.candlesticks)) return [{ candlesticks: data.candlesticks }];
+  if (Array.isArray(data.candlesticks)) {
+    return [{ candlesticks: data.candlesticks }];
+  }
+
   return [];
 }
 
@@ -480,12 +559,14 @@ function App() {
   const [draftCreatedMonth, setDraftCreatedMonth] = useState('');
   const [draftStatus, setDraftStatus] = useState('all');
   const [draftMarketScope, setDraftMarketScope] = useState('all');
+  const [draftClosingSoon, setDraftClosingSoon] = useState('all');
 
   const [appliedDateMode, setAppliedDateMode] = useState('all');
   const [appliedCreatedDate, setAppliedCreatedDate] = useState('');
   const [appliedCreatedMonth, setAppliedCreatedMonth] = useState('');
   const [appliedStatus, setAppliedStatus] = useState('all');
   const [appliedMarketScope, setAppliedMarketScope] = useState('all');
+  const [appliedClosingSoon, setAppliedClosingSoon] = useState('all');
 
   const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -515,6 +596,7 @@ function App() {
     createdMonthValue = appliedCreatedMonth,
     statusValue = appliedStatus,
     marketScopeValue = appliedMarketScope,
+    closingSoonValue = appliedClosingSoon,
     searchOverride = searchTerm
   ) {
     try {
@@ -544,19 +626,24 @@ function App() {
       }
 
       const params = new URLSearchParams();
+
       params.set('limit', String(PAGE_SIZE));
       addMarketScopeParam(params, marketScopeValue);
 
-      const timeRange = getTimeRange(
-        dateModeValue,
-        createdDateValue,
-        createdMonthValue
-      );
+      const closingSoonRange = getClosingSoonRange(closingSoonValue);
+      const timeRange = closingSoonRange
+        ? null
+        : getTimeRange(dateModeValue, createdDateValue, createdMonthValue);
 
-      if (timeRange) {
+      if (closingSoonRange) {
+        params.set('min_close_ts', String(closingSoonRange.minTs));
+        params.set('max_close_ts', String(closingSoonRange.maxTs));
+      } else if (timeRange) {
         params.set('min_created_ts', String(timeRange.minTs));
         params.set('max_created_ts', String(timeRange.maxTs));
-      } else if (statusValue !== 'all') {
+      }
+
+      if (statusValue !== 'all') {
         params.set('status', statusValue);
       }
 
@@ -565,7 +652,6 @@ function App() {
       }
 
       const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`);
-
       const data = await response.json();
       const marketList = Array.isArray(data.markets) ? data.markets : [];
 
@@ -595,7 +681,8 @@ function App() {
     createdDateValue = appliedCreatedDate,
     createdMonthValue = appliedCreatedMonth,
     statusValue = appliedStatus,
-    marketScopeValue = appliedMarketScope
+    marketScopeValue = appliedMarketScope,
+    closingSoonValue = appliedClosingSoon
   ) {
     try {
       setLoading(true);
@@ -608,19 +695,24 @@ function App() {
 
       do {
         const params = new URLSearchParams();
+
         params.set('limit', String(PAGE_SIZE));
         addMarketScopeParam(params, marketScopeValue);
 
-        const timeRange = getTimeRange(
-          dateModeValue,
-          createdDateValue,
-          createdMonthValue
-        );
+        const closingSoonRange = getClosingSoonRange(closingSoonValue);
+        const timeRange = closingSoonRange
+          ? null
+          : getTimeRange(dateModeValue, createdDateValue, createdMonthValue);
 
-        if (timeRange) {
+        if (closingSoonRange) {
+          params.set('min_close_ts', String(closingSoonRange.minTs));
+          params.set('max_close_ts', String(closingSoonRange.maxTs));
+        } else if (timeRange) {
           params.set('min_created_ts', String(timeRange.minTs));
           params.set('max_created_ts', String(timeRange.maxTs));
-        } else if (statusValue !== 'all') {
+        }
+
+        if (statusValue !== 'all') {
           params.set('status', statusValue);
         }
 
@@ -629,7 +721,6 @@ function App() {
         }
 
         const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`);
-
         const data = await response.json();
         const pageMarkets = Array.isArray(data.markets) ? data.markets : [];
 
@@ -722,6 +813,7 @@ function App() {
         candlesticks = data.candlesticks;
       } else {
         const groups = getBatchCandlestickGroups(data);
+
         const batchMarket =
           groups.find(
             (item) =>
@@ -869,11 +961,13 @@ function App() {
         appliedCreatedMonth,
         appliedStatus,
         appliedMarketScope,
+        appliedClosingSoon,
         trimmedSearch
       );
     }, 350);
 
     return () => clearTimeout(timer);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     searchTerm,
@@ -882,6 +976,7 @@ function App() {
     appliedCreatedMonth,
     appliedStatus,
     appliedMarketScope,
+    appliedClosingSoon,
   ]);
 
   useEffect(() => {
@@ -889,17 +984,38 @@ function App() {
   }, [comparisonMarkets]);
 
   const filteredMarkets = useMemo(() => {
-    return markets.filter((market) => {
-      const matchesText = matchesKeywordSearch(market, searchTerm);
-      const matchesChosenStatus = matchesStatus(market.status, appliedStatus);
-      const matchesChosenScope = matchesMarketScope(market, appliedMarketScope);
+    return markets
+      .filter((market) => {
+        const matchesText = matchesKeywordSearch(market, searchTerm);
+        const matchesChosenStatus = matchesStatus(market.status, appliedStatus);
+        const matchesChosenScope = matchesMarketScope(
+          market,
+          appliedMarketScope
+        );
+        const matchesChosenClosingSoon = matchesClosingSoon(
+          market,
+          appliedClosingSoon
+        );
 
-      return matchesText && matchesChosenStatus && matchesChosenScope;
-    });
-  }, [markets, searchTerm, appliedStatus, appliedMarketScope]);
+        return (
+          matchesText &&
+          matchesChosenStatus &&
+          matchesChosenScope &&
+          matchesChosenClosingSoon
+        );
+      })
+      .sort(appliedClosingSoon === 'all' ? undefined : sortByCloseTime);
+  }, [
+    markets,
+    searchTerm,
+    appliedStatus,
+    appliedMarketScope,
+    appliedClosingSoon,
+  ]);
 
   const autocompleteSuggestions = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
+
     if (!query) return [];
 
     const seen = new Set();
@@ -908,6 +1024,7 @@ function App() {
     for (const market of markets) {
       if (!matchesMarketScope(market, appliedMarketScope)) continue;
       if (!matchesStatus(market.status, appliedStatus)) continue;
+      if (!matchesClosingSoon(market, appliedClosingSoon)) continue;
       if (!matchesKeywordSearch(market, query)) continue;
       if (seen.has(market.ticker)) continue;
 
@@ -916,6 +1033,7 @@ function App() {
         title: getSuggestionLabel(market),
         status: market.status || 'N/A',
       });
+
       seen.add(market.ticker);
 
       if (suggestions.length >= MAX_SUGGESTIONS) {
@@ -924,10 +1042,18 @@ function App() {
     }
 
     return suggestions;
-  }, [markets, searchTerm, appliedStatus, appliedMarketScope]);
+  }, [
+    markets,
+    searchTerm,
+    appliedStatus,
+    appliedMarketScope,
+    appliedClosingSoon,
+  ]);
 
   const selectedMarket = useMemo(() => {
-    return filteredMarkets.find((market) => market.ticker === selectedTicker) || null;
+    return (
+      filteredMarkets.find((market) => market.ticker === selectedTicker) || null
+    );
   }, [filteredMarkets, selectedTicker]);
 
   const comparisonLineNames = useMemo(() => {
@@ -954,7 +1080,9 @@ function App() {
 
   const closingIn24HoursCount = filteredMarkets.filter((market) => {
     const closeTime = new Date(market.close_time).getTime();
+
     if (Number.isNaN(closeTime)) return false;
+
     return closeTime >= now && closeTime <= now + TWENTY_FOUR_HOURS_MS;
   }).length;
 
@@ -964,11 +1092,13 @@ function App() {
 
   const highCertaintyCount = filteredMarkets.filter((market) => {
     const yesAsk = Number(market.yes_ask_dollars);
+
     return !Number.isNaN(yesAsk) && yesAsk >= HIGH_CERTAINTY_THRESHOLD;
   }).length;
 
   const lowCertaintyCount = filteredMarkets.filter((market) => {
     const yesAsk = Number(market.yes_ask_dollars);
+
     return (
       !Number.isNaN(yesAsk) &&
       yesAsk >= LOW_CERTAINTY_LOWER &&
@@ -985,6 +1115,8 @@ function App() {
     setAppliedCreatedMonth(draftCreatedMonth);
     setAppliedStatus(draftStatus);
     setAppliedMarketScope(draftMarketScope);
+    setAppliedClosingSoon(draftClosingSoon);
+
     setCursorHistory([]);
     setCurrentCursor('');
     setShowSuggestions(false);
@@ -994,7 +1126,8 @@ function App() {
       draftCreatedDate,
       draftCreatedMonth,
       draftStatus,
-      draftMarketScope
+      draftMarketScope,
+      draftClosingSoon
     );
   }
 
@@ -1004,23 +1137,26 @@ function App() {
     setDraftCreatedMonth('');
     setDraftStatus('all');
     setDraftMarketScope('all');
+    setDraftClosingSoon('all');
 
     setAppliedDateMode('all');
     setAppliedCreatedDate('');
     setAppliedCreatedMonth('');
     setAppliedStatus('all');
     setAppliedMarketScope('all');
+    setAppliedClosingSoon('all');
 
     setSearchTerm('');
     setCursorHistory([]);
     setCurrentCursor('');
     setShowSuggestions(false);
 
-    loadMarkets('', 'all', '', '', 'all', 'all');
+    loadMarkets('', 'all', '', '', 'all', 'all', 'all');
   }
 
   function goToNextPage() {
     if (!nextCursor) return;
+
     setCursorHistory((prev) => [...prev, currentCursor]);
     setCurrentCursor(nextCursor);
     loadMarkets(nextCursor);
@@ -1132,6 +1268,26 @@ function App() {
           </div>
 
           <div className="control-group">
+            <label htmlFor="closingSoon">Closing window</label>
+            <select
+              id="closingSoon"
+              value={draftClosingSoon}
+              onChange={(e) => setDraftClosingSoon(e.target.value)}
+            >
+              <option value="all">Any close date</option>
+              <option value="oneDay">Closing in 1 day</option>
+              <option value="twoDays">Closing in 2 days</option>
+              <option value="oneWeek">Closing in 1 week</option>
+            </select>
+
+            {draftClosingSoon !== 'all' && (
+              <p className="control-note">
+                Closing window ignores the created-date filter.
+              </p>
+            )}
+          </div>
+
+          <div className="control-group">
             <label htmlFor="status">Status</label>
             <select
               id="status"
@@ -1161,10 +1317,19 @@ function App() {
           </div>
 
           <div className="button-row">
-            <button type="button" className="primary-button" onClick={applyFilters}>
+            <button
+              type="button"
+              className="primary-button"
+              onClick={applyFilters}
+            >
               Apply filters
             </button>
-            <button type="button" className="ghost-button" onClick={clearFilters}>
+
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={clearFilters}
+            >
               Clear
             </button>
           </div>
@@ -1221,24 +1386,30 @@ function App() {
                     );
                     const eventQuestion = getEventQuestion(market);
                     const outcomeLabel = getOutcomeLabel(market);
-                    const marketTypeLabel = isComboMarket(market) ? 'Combo' : 'Single';
+                    const marketTypeLabel = isComboMarket(market)
+                      ? 'Combo'
+                      : 'Single';
 
                     return (
                       <button
                         key={market.ticker}
                         type="button"
-                        className={`market-row ${isSelected ? 'selected' : ''} ${
-                          isCompared ? 'compared' : ''
-                        }`}
+                        className={`market-row ${
+                          isSelected ? 'selected' : ''
+                        } ${isCompared ? 'compared' : ''}`}
                         onClick={() => setSelectedTicker(market.ticker)}
                       >
                         <div className="market-row-main">
                           <div className="market-row-topline">
-                            <p className="ticker">{market.event_ticker || market.ticker}</p>
+                            <p className="ticker">
+                              {market.event_ticker || market.ticker}
+                            </p>
+
                             <div className="market-row-actions">
                               <span className="market-status-pill">
                                 {market.status || 'N/A'}
                               </span>
+
                               <span
                                 role="button"
                                 tabIndex={0}
@@ -1250,7 +1421,10 @@ function App() {
                                   toggleComparisonMarket(market);
                                 }}
                                 onKeyDown={(event) => {
-                                  if (event.key === 'Enter' || event.key === ' ') {
+                                  if (
+                                    event.key === 'Enter' ||
+                                    event.key === ' '
+                                  ) {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     toggleComparisonMarket(market);
@@ -1269,7 +1443,11 @@ function App() {
                         <div className="market-row-meta">
                           <span>Type: {marketTypeLabel}</span>
                           <span>Created: {formatDate(market.created_time)}</span>
-                          <span>Yes ask: {formatPercentFromDollar(market.yes_ask_dollars)}</span>
+                          <span>Closes: {formatDate(market.close_time)}</span>
+                          <span>
+                            Yes ask:{' '}
+                            {formatPercentFromDollar(market.yes_ask_dollars)}
+                          </span>
                           <span>Volume: ${formatNumber(market.volume_fp)}</span>
                         </div>
                       </button>
@@ -1305,8 +1483,8 @@ function App() {
 
                   {comparisonMarkets.length === 0 ? (
                     <div className="empty-state">
-                      Select up to {MAX_COMPARISON_MARKETS} markets using the Compare
-                      button on each card.
+                      Select up to {MAX_COMPARISON_MARKETS} markets using the
+                      Compare button on each card.
                     </div>
                   ) : (
                     <div className="comparison-stack">
@@ -1322,7 +1500,9 @@ function App() {
                               className="comparison-dot"
                               style={{
                                 backgroundColor:
-                                  COMPARISON_COLORS[index % COMPARISON_COLORS.length],
+                                  COMPARISON_COLORS[
+                                    index % COMPARISON_COLORS.length
+                                  ],
                               }}
                             />
                             {getOutcomeLabel(market)}
@@ -1352,12 +1532,14 @@ function App() {
                                   strokeDasharray="3 3"
                                   vertical={false}
                                 />
+
                                 <XAxis
                                   dataKey="dateLabel"
                                   tick={{ fill: '#6b7280', fontSize: 12 }}
                                   axisLine={{ stroke: '#e5e7eb' }}
                                   tickLine={false}
                                 />
+
                                 <YAxis
                                   domain={[0, 100]}
                                   tickFormatter={(value) => `${value}%`}
@@ -1365,6 +1547,7 @@ function App() {
                                   axisLine={{ stroke: '#e5e7eb' }}
                                   tickLine={false}
                                 />
+
                                 <Tooltip
                                   formatter={(value, name) => [
                                     `${value}%`,
@@ -1377,11 +1560,13 @@ function App() {
                                     color: '#111827',
                                   }}
                                 />
+
                                 <Legend
                                   formatter={(value) =>
                                     comparisonLineNames[value] || value
                                   }
                                 />
+
                                 {comparisonMarkets.map((market, index) => (
                                   <Line
                                     key={market.ticker}
@@ -1424,7 +1609,9 @@ function App() {
                       <div className="detail-block">
                         <span className="detail-label">Badges</span>
                         <p>
-                          {isComboMarket(selectedMarket) ? 'Combo market' : 'Single market'}
+                          {isComboMarket(selectedMarket)
+                            ? 'Combo market'
+                            : 'Single market'}
                           {!hasEnoughHistory && historyData.length > 0
                             ? ' · Sparse history'
                             : ''}
@@ -1449,17 +1636,27 @@ function App() {
 
                         <div className="detail-block">
                           <span className="detail-label">Last price</span>
-                          <p>{formatMoney(selectedMarket.last_price_dollars)}</p>
+                          <p>
+                            {formatMoney(selectedMarket.last_price_dollars)}
+                          </p>
                         </div>
 
                         <div className="detail-block">
                           <span className="detail-label">Yes ask</span>
-                          <p>{formatPercentFromDollar(selectedMarket.yes_ask_dollars)}</p>
+                          <p>
+                            {formatPercentFromDollar(
+                              selectedMarket.yes_ask_dollars
+                            )}
+                          </p>
                         </div>
 
                         <div className="detail-block">
                           <span className="detail-label">No ask</span>
-                          <p>{formatPercentFromDollar(selectedMarket.no_ask_dollars)}</p>
+                          <p>
+                            {formatPercentFromDollar(
+                              selectedMarket.no_ask_dollars
+                            )}
+                          </p>
                         </div>
 
                         <div className="detail-block">
@@ -1469,12 +1666,16 @@ function App() {
 
                         <div className="detail-block">
                           <span className="detail-label">Liquidity</span>
-                          <p>{formatMoney(selectedMarket.liquidity_dollars)}</p>
+                          <p>
+                            {formatMoney(selectedMarket.liquidity_dollars)}
+                          </p>
                         </div>
                       </div>
 
                       <div className="detail-block chart-block">
-                        <span className="detail-label">Selected market price history</span>
+                        <span className="detail-label">
+                          Selected market price history
+                        </span>
 
                         {historyLoading ? (
                           <p>Loading chart...</p>
@@ -1483,7 +1684,10 @@ function App() {
                         ) : historyData.length === 0 ? (
                           <p>No historical price data available.</p>
                         ) : !hasEnoughHistory ? (
-                          <p>Only one historical data point is available for this market.</p>
+                          <p>
+                            Only one historical data point is available for this
+                            market.
+                          </p>
                         ) : (
                           <div className="chart-wrap">
                             <ResponsiveContainer width="100%" height={300}>
@@ -1493,12 +1697,14 @@ function App() {
                                   strokeDasharray="3 3"
                                   vertical={false}
                                 />
+
                                 <XAxis
                                   dataKey="dateLabel"
                                   tick={{ fill: '#6b7280', fontSize: 12 }}
                                   axisLine={{ stroke: '#e5e7eb' }}
                                   tickLine={false}
                                 />
+
                                 <YAxis
                                   domain={[0, 100]}
                                   tickFormatter={(value) => `${value}%`}
@@ -1506,6 +1712,7 @@ function App() {
                                   axisLine={{ stroke: '#e5e7eb' }}
                                   tickLine={false}
                                 />
+
                                 <Tooltip
                                   formatter={(value) => `${value}%`}
                                   contentStyle={{
@@ -1515,6 +1722,7 @@ function App() {
                                     color: '#111827',
                                   }}
                                 />
+
                                 <Line
                                   type="monotone"
                                   dataKey="yesPct"
@@ -1523,6 +1731,7 @@ function App() {
                                   dot={false}
                                   strokeWidth={2.5}
                                 />
+
                                 <Line
                                   type="monotone"
                                   dataKey="noPct"

@@ -154,3 +154,8 @@ line graph of price chart history of whole event (movement of price at timeline)
 google trends
 why you want autocomplete search
 active and least active markets
+
+
+arc institute:
+make an account
+get venmo 50 dollars
