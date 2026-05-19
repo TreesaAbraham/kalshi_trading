@@ -159,3 +159,58 @@ active and least active markets
 arc institute:
 make an account
 get venmo 50 dollars
+
+US gas prices tomorrow: above 4.520, yes
+top AI this week: Chatgpt no
+south carolina senate winner: republican party
+Eurovision Winner 2026: Denmark
+runner up USA Song on Spotify today
+NVIDIA RTX 5090 Compute Price Up or Down by Friday? yes
+Will WHO declare Hantavirus a Public Health Emergency of International Concern this Year? Yes
+How many launches will SpaceX have in May?
+Above 10 yes
+
+
+
+
+1. US gas prices tomorrow
+    1. Above 4.545→No
+    2. One: Today’s avg was 4.534, and I don’t think it’s going to increase over 4.545, also given that Xi Jinping is offering to broker end of war. While I’m not 100% confident with my reasonings, I could see in the long term, gas prices decreasing (but maybe not the best for just tmr)
+    3. Result: Correct. Payout: +1.05
+2. Runner up Song on Spotify for today
+    1. Make them cry→No 48 cents. 
+        1. Looked at today’s top 50, and didn’t see any drake, put in 5 dollars
+            1. Right gained 5.04 dollars
+    2. Ran to Atlanta→No 65 cents
+        1. Also saw no drake on top 50. Plus I don’t care for Drake.
+        2. Wrong lost 10 dollars
+3. What will Trump say during his Fox interview
+    1. Taiwan→Yes, $10.54
+    2. Xi Jinping is brokering peace between Iran and Us, but there’s still tension since US supports Taiwan. I’m sure it will be discussed by Trump (if of course he remembers)
+        1. Yes gained 11.07
+4. What will Chrsitorpher Nolan say during 60 minutes
+    1. Odyssey→Yes
+    2. Latest movie release large hype around it
+        1. right gained 14 cents
+    3. Homer →Yes
+    4. since odyssey was by homer I could see nolan bringing up Homer as inspriation
+        1. Wrong and lost 5 bucks
+5. Top AI model this week
+    1. claude opus 4-6 no
+    2. because I’m pretty sure it’s gonna be one of the thinking models
+6. How many times will Larence o donnel say trump during his show
+    1. 50+ times yes, he’s opps with Trump
+7. US gas prices tmr
+    1. Above 4.520: yes, vibes?
+
+
+    add a filter that shows the length of certain markekts, to compare to other short term markets
+    read book
+
+
+    portfolio
+    I don't kink shame I live in California-lorenzo
+
+
+use kalshi to make a page for trading journals
+Look at the trading journals for inspiration (custom application for me)
